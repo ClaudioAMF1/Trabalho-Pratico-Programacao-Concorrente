@@ -1,0 +1,13 @@
+# Arquivos compilados
+obj/
+*.o
+bomb_defuser
+
+# Arquivos do editor
+*.swp
+*.swo
+*~
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
