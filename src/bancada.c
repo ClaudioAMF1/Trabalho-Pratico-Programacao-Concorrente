@@ -1,7 +1,5 @@
-/**
- * @file bancada.c
- * @brief Implementacao do gerenciamento de bancadas
- *
+/*
+ * bancada.c - Recurso compartilhado com mutex e cond var
  * Keep Solving and Nobody Explodes - Versao de Treino
  */
 

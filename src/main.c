@@ -1,16 +1,7 @@
-/**
- * @file main.c
- * @brief Ponto de entrada do jogo
- *
+/*
+ * main.c - Ponto de entrada e loop principal do jogo
  * Keep Solving and Nobody Explodes - Versao de Treino
- * Trabalho Pratico - Programacao Concorrente
- * IDP 2025/2
- *
- * Este arquivo contem:
- * - Funcao main()
- * - Loop principal do jogo
- * - Menu e configuracoes
- * - Tratamento de entrada do usuario
+ * Trabalho Pratico - Programacao Concorrente IDP 2025/2
  */
 
 #include <stdio.h>
@@ -28,15 +19,9 @@
 #include "../include/tedax.h"
 #include "../include/bancada.h"
 
-/* Variavel global do jogo */
 EstadoJogoCompleto* jogo = NULL;
-
-/* Flag para tratamento de sinais */
 static volatile sig_atomic_t sinal_recebido = 0;
 
-/**
- * @brief Handler para sinais de interrupcao
- */
 void handler_sinal(int sig) {
     (void)sig; /* Evita warning */
     sinal_recebido = 1;
@@ -45,11 +30,6 @@ void handler_sinal(int sig) {
     }
 }
 
-/**
- * @brief Exibe e processa o menu principal
- * @param config Configuracoes do jogo
- * @return Opcao selecionada (0=jogar, 1=config, 2=ajuda, 3=sair)
- */
 int menu_principal(ConfigJogo* config) {
     (void)config; /* Evita warning de parametro nao usado */
     int opcao = 0;
@@ -98,10 +78,6 @@ int menu_principal(ConfigJogo* config) {
     }
 }
 
-/**
- * @brief Exibe e processa a tela de configuracoes
- * @param config Configuracoes a serem editadas
- */
 void menu_configuracoes(ConfigJogo* config) {
     if (!config) return;
 
@@ -199,10 +175,6 @@ void menu_configuracoes(ConfigJogo* config) {
     }
 }
 
-/**
- * @brief Loop principal durante uma partida
- * @return true se deve voltar ao menu, false se deve sair
- */
 bool loop_partida(void) {
     int tecla;
 
@@ -299,9 +271,6 @@ bool loop_partida(void) {
     return false;
 }
 
-/**
- * @brief Funcao principal
- */
 int main(int argc, char* argv[]) {
     (void)argc; /* Evita warning */
     (void)argv; /* Evita warning */

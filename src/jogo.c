@@ -1,14 +1,6 @@
-/**
- * @file jogo.c
- * @brief Implementacao do controle geral do jogo
- *
+/*
+ * jogo.c - Controle geral do jogo, threads e processamento de comandos
  * Keep Solving and Nobody Explodes - Versao de Treino
- *
- * Este arquivo contem a logica principal do jogo, incluindo:
- * - Inicializacao e finalizacao
- * - Thread do coordenador (input do usuario)
- * - Thread do temporizador
- * - Processamento de comandos
  */
 
 #include "../include/jogo.h"
@@ -23,10 +15,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-/* Variavel global do jogo (definida em main.c) */
 extern EstadoJogoCompleto* jogo;
-
-/* ==================== CONFIGURACAO ==================== */
 
 ConfigJogo config_padrao(void) {
     ConfigJogo config;
@@ -39,17 +28,12 @@ ConfigJogo config_padrao(void) {
     return config;
 }
 
-/* ==================== INICIALIZACAO ==================== */
-
 int jogo_init(EstadoJogoCompleto* estado, ConfigJogo* config) {
     if (!estado || !config) return -1;
 
     memset(estado, 0, sizeof(EstadoJogoCompleto));
 
-    /* Copia configuracoes */
     memcpy(&estado->config, config, sizeof(ConfigJogo));
-
-    /* Valida configuracoes */
     if (estado->config.num_tedax < 1) estado->config.num_tedax = 1;
     if (estado->config.num_tedax > MAX_TEDAX) estado->config.num_tedax = MAX_TEDAX;
     if (estado->config.num_bancadas < 1) estado->config.num_bancadas = 1;
@@ -124,8 +108,6 @@ void jogo_finalizar(EstadoJogoCompleto* estado) {
     pthread_mutex_destroy(&estado->mutex_comando);
     pthread_cond_destroy(&estado->cond_fim_jogo);
 }
-
-/* ==================== CONTROLE DE PARTIDA ==================== */
 
 int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
     if (!estado) return -1;
@@ -255,8 +237,6 @@ bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
     return fim;
 }
 
-/* ==================== PROCESSAMENTO DE COMANDOS ==================== */
-
 void jogo_adicionar_char_comando(EstadoJogoCompleto* estado, char c) {
     if (!estado) return;
 
@@ -287,16 +267,7 @@ void jogo_limpar_comando(EstadoJogoCompleto* estado) {
     pthread_mutex_unlock(&estado->mutex_comando);
 }
 
-/**
- * @brief Processa um comando do jogador
- *
- * Formato do comando: [TEDAX][TIPO][BANCADA][INSTRUCAO]
- * Exemplo: 1f1rgb
- *   - 1 = Tedax 1
- *   - f = Modulo tipo Fios
- *   - 1 = Bancada 1
- *   - rgb = Instrucao (cortar fios vermelho, verde, azul)
- */
+/* Formato: [TEDAX][TIPO][BANCADA][INSTRUCAO] ex: 1f1rgb */
 bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
     if (!estado || !comando || strlen(comando) < 4) {
         jogo_feedback(estado, "Comando muito curto! Formato: [TEDAX][TIPO][BANCADA][INSTRUCAO]");
@@ -403,8 +374,6 @@ bool jogo_executar_comando(EstadoJogoCompleto* estado) {
     return resultado;
 }
 
-/* ==================== FEEDBACK ==================== */
-
 void jogo_feedback(EstadoJogoCompleto* estado, const char* formato, ...) {
     if (!estado || !formato) return;
 
@@ -418,8 +387,6 @@ void jogo_feedback(EstadoJogoCompleto* estado, const char* formato, ...) {
 
     va_end(args);
 }
-
-/* ==================== ESTADO ==================== */
 
 EstadoJogo jogo_obter_estado(EstadoJogoCompleto* estado) {
     if (!estado) return JOGO_SAINDO;
@@ -439,14 +406,7 @@ void jogo_definir_estado(EstadoJogoCompleto* estado, EstadoJogo novo_estado) {
     pthread_mutex_unlock(&estado->mutex_estado);
 }
 
-/* ==================== THREADS ==================== */
-
-/**
- * @brief Thread do temporizador
- *
- * Decrementa o tempo restante a cada segundo.
- * Verifica condicoes de fim de jogo.
- */
+/* Thread do timer - decrementa tempo a cada segundo */
 void* thread_timer(void* arg) {
     EstadoJogoCompleto* estado = (EstadoJogoCompleto*)arg;
     if (!estado) return NULL;
@@ -481,12 +441,6 @@ void* thread_timer(void* arg) {
     return NULL;
 }
 
-/**
- * @brief Thread do coordenador
- *
- * Coleta inputs do usuario e processa comandos.
- * Esta thread nao e mais usada pois o input e tratado no main loop.
- */
 void* thread_coordenador(void* arg) {
     EstadoJogoCompleto* estado = (EstadoJogoCompleto*)arg;
     if (!estado) return NULL;

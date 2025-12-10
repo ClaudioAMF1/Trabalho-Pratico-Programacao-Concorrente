@@ -1,7 +1,5 @@
-/**
- * @file modulos.c
- * @brief Implementacao do gerenciamento de modulos
- *
+/*
+ * modulos.c - Gerenciamento de modulos e fila thread-safe
  * Keep Solving and Nobody Explodes - Versao de Treino
  */
 
@@ -23,8 +21,6 @@ static const char* nomes_modulos[] = {
 
 /* Caracteres identificadores */
 static const char chars_modulos[] = {'f', 'b', 's', 'i'};
-
-/* ==================== FUNCOES DA FILA ==================== */
 
 void fila_modulos_init(FilaModulos* fila) {
     if (!fila) return;
@@ -181,8 +177,6 @@ int fila_modulos_quantidade(FilaModulos* fila) {
     return qtd;
 }
 
-/* ==================== FUNCOES DE MODULO ==================== */
-
 const char* nome_tipo_modulo(TipoModulo tipo) {
     if (tipo >= 0 && tipo < MODULO_TOTAL) {
         return nomes_modulos[tipo];
@@ -282,8 +276,7 @@ Modulo gerar_modulo_aleatorio(int id, int dificuldade) {
     return m;
 }
 
-/* ==================== THREAD DO MURAL ==================== */
-
+/* Thread que gera modulos aleatorios periodicamente */
 void* thread_mural_modulos(void* arg) {
     EstadoJogoCompleto* estado = (EstadoJogoCompleto*)arg;
     if (!estado) return NULL;

@@ -1,12 +1,6 @@
-/**
- * @file tedax.c
- * @brief Implementacao do Tedax (Tecnico Especialista em Desativacao)
- *
+/*
+ * tedax.c - Thread do tecnico que desarma modulos nas bancadas
  * Keep Solving and Nobody Explodes - Versao de Treino
- *
- * SECAO CRITICA: Cada Tedax e uma thread independente que compete por
- * bancadas (recurso compartilhado). A sincronizacao e feita via mutex
- * e variaveis de condicao.
  */
 
 #include "../include/tedax.h"
@@ -146,22 +140,7 @@ bool tedax_resolver_modulo(Tedax* tedax, Modulo* modulo, const char* instrucao) 
     return sucesso;
 }
 
-/**
- * @brief Thread principal do Tedax
- *
- * Esta thread implementa o ciclo de vida de um Tedax:
- * 1. Aguarda receber uma tarefa (modulo + bancada)
- * 2. Tenta ocupar a bancada designada
- * 3. Se ocupada, aguarda na fila (implementa assimetria)
- * 4. Quando conseguir a bancada, resolve o modulo
- * 5. Libera a bancada e volta a aguardar
- *
- * SINCRONIZACAO:
- * - Mutex do tedax: protege estado interno
- * - Mutex da bancada: protege acesso a bancada
- * - Cond var cond_tarefa: sinaliza nova tarefa
- * - Cond var cond_livre (bancada): sinaliza bancada livre
- */
+/* Thread principal do Tedax - aguarda tarefa, ocupa bancada, resolve modulo */
 void* thread_tedax(void* arg) {
     Tedax* tedax = (Tedax*)arg;
     if (!tedax || !jogo) return NULL;

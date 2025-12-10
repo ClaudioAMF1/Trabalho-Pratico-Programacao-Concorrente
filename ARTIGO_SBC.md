@@ -2,6 +2,7 @@
 
 ## Documentacao de Implementacao - Programacao Concorrente
 
+**Aluno:** Claudio da Aparecida Meireles Filho | **RA:** 2321070
 **Instituto IDP - Ciencia da Computacao / Engenharia de Software**
 **Disciplina:** Programacao Concorrente | **Professor:** Jeremias Moreira Gomes | **Periodo:** 2025/2
 
