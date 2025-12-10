@@ -545,6 +545,7 @@ void display_atualizar(EstadoJogoCompleto* estado) {
 }
 
 void display_mensagem(EstadoJogoCompleto* estado, const char* mensagem, int tipo) {
+    (void)tipo; /* Evita warning - pode ser usado para cores no futuro */
     if (!estado || !mensagem) return;
 
     pthread_mutex_lock(&estado->mutex_estado);

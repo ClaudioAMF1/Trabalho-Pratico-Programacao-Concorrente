@@ -38,6 +38,7 @@ static volatile sig_atomic_t sinal_recebido = 0;
  * @brief Handler para sinais de interrupcao
  */
 void handler_sinal(int sig) {
+    (void)sig; /* Evita warning */
     sinal_recebido = 1;
     if (jogo) {
         jogo->executando = false;
@@ -50,8 +51,11 @@ void handler_sinal(int sig) {
  * @return Opcao selecionada (0=jogar, 1=config, 2=ajuda, 3=sair)
  */
 int menu_principal(ConfigJogo* config) {
+    (void)config; /* Evita warning de parametro nao usado */
     int opcao = 0;
     int tecla;
+
+    nodelay(stdscr, FALSE); /* Menu usa getch bloqueante */
 
     while (1) {
         display_menu(opcao);
@@ -104,6 +108,8 @@ void menu_configuracoes(ConfigJogo* config) {
     int campo = 0;
     int num_campos = 7; /* 6 campos + botao voltar */
     int tecla;
+
+    nodelay(stdscr, FALSE); /* Configuracoes usa getch bloqueante */
 
     while (1) {
         display_configuracao(config, campo);
@@ -200,6 +206,8 @@ void menu_configuracoes(ConfigJogo* config) {
 bool loop_partida(void) {
     int tecla;
 
+    nodelay(stdscr, TRUE); /* Jogo usa getch nao-bloqueante */
+
     while (jogo->executando) {
         /* Verifica estado do jogo */
         EstadoJogo estado = jogo_obter_estado(jogo);
@@ -295,6 +303,9 @@ bool loop_partida(void) {
  * @brief Funcao principal
  */
 int main(int argc, char* argv[]) {
+    (void)argc; /* Evita warning */
+    (void)argv; /* Evita warning */
+
     /* Configura handler de sinais */
     signal(SIGINT, handler_sinal);
     signal(SIGTERM, handler_sinal);
