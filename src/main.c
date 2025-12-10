@@ -35,7 +35,8 @@ int menu_principal(ConfigJogo* config) {
     int opcao = 0;
     int tecla;
 
-    nodelay(stdscr, FALSE); /* Menu usa getch bloqueante */
+    timeout(-1); /* Menu usa getch bloqueante */
+    flushinp();
 
     while (1) {
         display_menu(opcao);
@@ -85,7 +86,8 @@ void menu_configuracoes(ConfigJogo* config) {
     int num_campos = 7; /* 6 campos + botao voltar */
     int tecla;
 
-    nodelay(stdscr, FALSE); /* Configuracoes usa getch bloqueante */
+    timeout(-1); /* Configuracoes usa getch bloqueante */
+    flushinp();
 
     while (1) {
         display_configuracao(config, campo);
@@ -179,7 +181,7 @@ bool loop_partida(void) {
     int tecla;
     int contador_display = 0;
 
-    nodelay(stdscr, TRUE); /* Jogo usa getch nao-bloqueante */
+    flushinp(); /* Limpa qualquer input pendente */
     timeout(50); /* Timeout de 50ms para getch */
 
     while (jogo->executando) {
@@ -194,9 +196,9 @@ bool loop_partida(void) {
             jogo_parar_partida(jogo);
 
             /* Mostra tela de fim */
-            nodelay(stdscr, FALSE);
             timeout(-1);
             display_fim_jogo(jogo);
+            flushinp();
             getch();
 
             return true; /* Volta ao menu */
@@ -258,12 +260,12 @@ bool loop_partida(void) {
                     if (jogo_obter_estado(jogo) == JOGO_RODANDO) {
                         jogo_pausar(jogo);
                     }
-                    nodelay(stdscr, FALSE);
                     timeout(-1);
                     display_ajuda();
+                    flushinp();
                     getch();
-                    nodelay(stdscr, TRUE);
                     timeout(50);
+                    flushinp();
                     if (jogo_obter_estado(jogo) == JOGO_PAUSADO) {
                         jogo_pausar(jogo); /* Despausa */
                     }
@@ -365,9 +367,9 @@ int main(int argc, char* argv[]) {
 
             case 2: /* Ajuda */
                 display_ajuda();
-                nodelay(stdscr, FALSE);
+                timeout(-1);
+                flushinp();
                 getch();
-                nodelay(stdscr, TRUE);
                 break;
 
             case 3: /* Sair */

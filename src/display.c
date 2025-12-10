@@ -23,11 +23,13 @@ int display_init(void) {
     if (!stdscr) return -1;
 
     start_color();
-    raw();
+    cbreak();               /* cbreak ao inves de raw para melhor compatibilidade */
     noecho();
     keypad(stdscr, TRUE);
-    nodelay(stdscr, TRUE);  /* getch nao-bloqueante */
-    curs_set(0);            /* esconde cursor */
+    nodelay(stdscr, FALSE); /* Começa bloqueante, muda no loop do jogo */
+    curs_set(1);            /* Mostra cursor para facilitar digitacao */
+    mousemask(0, NULL);     /* Desabilita eventos de mouse */
+    intrflush(stdscr, FALSE);
 
     display_init_cores();
 
@@ -37,7 +39,7 @@ int display_init(void) {
 void display_finalizar(void) {
     nodelay(stdscr, FALSE);
     keypad(stdscr, FALSE);
-    noraw();
+    nocbreak();
     echo();
     curs_set(1);
     endwin();
