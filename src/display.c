@@ -23,13 +23,18 @@ int display_init(void) {
     if (!stdscr) return -1;
 
     start_color();
-    cbreak();               /* cbreak ao inves de raw para melhor compatibilidade */
+    cbreak();
     noecho();
     keypad(stdscr, TRUE);
-    nodelay(stdscr, FALSE); /* Começa bloqueante, muda no loop do jogo */
-    curs_set(1);            /* Mostra cursor para facilitar digitacao */
-    mousemask(0, NULL);     /* Desabilita eventos de mouse */
+    curs_set(1);
+    mousemask(0, NULL);
     intrflush(stdscr, FALSE);
+    scrollok(stdscr, FALSE);
+    idlok(stdscr, FALSE);
+    leaveok(stdscr, FALSE);
+
+    /* Salva o modo do programa para poder restaurar depois */
+    def_prog_mode();
 
     display_init_cores();
 

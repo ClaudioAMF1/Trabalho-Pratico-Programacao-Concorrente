@@ -31,11 +31,12 @@ void handler_sinal(int sig) {
 }
 
 int menu_principal(ConfigJogo* config) {
-    (void)config; /* Evita warning de parametro nao usado */
+    (void)config;
     int opcao = 0;
     int tecla;
 
-    timeout(-1); /* Menu usa getch bloqueante */
+    nocbreak();
+    cbreak(); /* Menu usa getch bloqueante */
     flushinp();
 
     while (1) {
@@ -83,10 +84,11 @@ void menu_configuracoes(ConfigJogo* config) {
     if (!config) return;
 
     int campo = 0;
-    int num_campos = 7; /* 6 campos + botao voltar */
+    int num_campos = 7;
     int tecla;
 
-    timeout(-1); /* Configuracoes usa getch bloqueante */
+    nocbreak();
+    cbreak();
     flushinp();
 
     while (1) {
@@ -180,29 +182,27 @@ void menu_configuracoes(ConfigJogo* config) {
 bool loop_partida(void) {
     int tecla;
 
-    flushinp(); /* Limpa qualquer input pendente */
+    flushinp();
+    halfdelay(1); /* Espera ate 100ms (1 decimo de segundo) por input */
 
     while (jogo->executando) {
+        /* Garante que ncurses tem controle do terminal */
+        reset_prog_mode();
+
         /* Verifica estado do jogo */
         EstadoJogo estado = jogo_obter_estado(jogo);
 
         if (estado == JOGO_VITORIA || estado == JOGO_DERROTA) {
-            /* Aguarda um pouco para mostrar mensagens finais */
             usleep(500000);
-
-            /* Para a partida */
             jogo_parar_partida(jogo);
 
-            /* Mostra tela de fim */
-            timeout(-1);
+            nocbreak();
+            cbreak();
             display_fim_jogo(jogo);
             flushinp();
             getch();
-            reset_prog_mode();
-            refresh();
-            flushinp();
 
-            return true; /* Volta ao menu */
+            return true;
         }
 
         /* Atualiza a tela */
@@ -232,8 +232,7 @@ bool loop_partida(void) {
 
         refresh();
 
-        /* Processa entrada do usuario - timeout de 100ms */
-        timeout(100);
+        /* Processa entrada do usuario */
         tecla = getch();
 
         if (tecla != ERR) {
@@ -256,16 +255,15 @@ bool loop_partida(void) {
                     if (jogo_obter_estado(jogo) == JOGO_RODANDO) {
                         jogo_pausar(jogo);
                     }
-                    timeout(-1);
+                    nocbreak();
+                    cbreak();
                     display_ajuda();
                     flushinp();
                     getch();
-                    /* Restaura controle do terminal para ncurses */
-                    reset_prog_mode();
-                    refresh();
+                    halfdelay(1);
                     flushinp();
                     if (jogo_obter_estado(jogo) == JOGO_PAUSADO) {
-                        jogo_pausar(jogo); /* Despausa */
+                        jogo_pausar(jogo);
                     }
                     break;
 
@@ -365,11 +363,8 @@ int main(int argc, char* argv[]) {
 
             case 2: /* Ajuda */
                 display_ajuda();
-                timeout(-1);
                 flushinp();
                 getch();
-                reset_prog_mode();
-                refresh();
                 flushinp();
                 break;
 
