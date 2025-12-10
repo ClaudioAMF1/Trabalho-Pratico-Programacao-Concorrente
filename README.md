@@ -3,8 +3,11 @@
 Simulador de treinamento para desativacao de bombas com programacao concorrente.
 
 **Aluno:** Claudio da Aparecida Meireles Filho
+
 **RA:** 2321070
+
 **Disciplina:** Programacao Concorrente - IDP 2025/2
+
 **Professor:** Jeremias Moreira Gomes
 
 ---
