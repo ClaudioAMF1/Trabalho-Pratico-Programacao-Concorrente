@@ -1,12 +1,6 @@
-/**
- * @file display.c
- * @brief Implementacao da interface grafica com ncurses
- *
+/*
+ * display.c - Interface grafica com ncurses
  * Keep Solving and Nobody Explodes - Versao de Treino
- *
- * SECAO CRITICA: A thread de display acessa recursos compartilhados
- * (estado do jogo, fila de modulos, tedax, bancadas) apenas para leitura.
- * Utiliza mutex_display para garantir consistencia na exibicao.
  */
 
 #include "../include/display.h"
@@ -20,10 +14,7 @@
 #include <unistd.h>
 #include <locale.h>
 
-/* Variavel global do jogo */
 extern EstadoJogoCompleto* jogo;
-
-/* ==================== INICIALIZACAO ==================== */
 
 int display_init(void) {
     setlocale(LC_ALL, "");
@@ -72,8 +63,6 @@ void display_limpar(void) {
     clear();
 }
 
-/* ==================== FUNCOES AUXILIARES ==================== */
-
 void formatar_tempo(int segundos, char* buffer, int tamanho) {
     if (!buffer || tamanho < 6) return;
     int min = segundos / 60;
@@ -106,8 +95,6 @@ void desenhar_caixa(int y, int x, int altura, int largura, const char* titulo) {
         mvprintw(y, pos, " %s ", titulo);
     }
 }
-
-/* ==================== DESENHO DAS AREAS ==================== */
 
 void display_titulo(int linha) {
     attron(COLOR_PAIR(COR_TITULO) | A_BOLD);
@@ -348,8 +335,6 @@ void display_comando(EstadoJogoCompleto* estado, int linha) {
     attroff(COLOR_PAIR(COR_PADRAO));
 }
 
-/* ==================== TELAS ESPECIAIS ==================== */
-
 void display_menu(int opcao_selecionada) {
     clear();
 
@@ -532,8 +517,6 @@ void display_ajuda(void) {
     refresh();
 }
 
-/* ==================== ATUALIZACAO PRINCIPAL ==================== */
-
 void display_atualizar(EstadoJogoCompleto* estado) {
     if (!estado) return;
 
@@ -578,8 +561,6 @@ void display_mensagem(EstadoJogoCompleto* estado, const char* mensagem, int tipo
     estado->tempo_mensagem = time(NULL);
     pthread_mutex_unlock(&estado->mutex_estado);
 }
-
-/* ==================== THREAD DE DISPLAY ==================== */
 
 void* thread_display(void* arg) {
     EstadoJogoCompleto* estado = (EstadoJogoCompleto*)arg;
