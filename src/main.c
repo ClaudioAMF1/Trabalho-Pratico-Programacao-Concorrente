@@ -198,6 +198,9 @@ bool loop_partida(void) {
             display_fim_jogo(jogo);
             flushinp();
             getch();
+            reset_prog_mode();
+            refresh();
+            flushinp();
 
             return true; /* Volta ao menu */
         }
@@ -257,7 +260,9 @@ bool loop_partida(void) {
                     display_ajuda();
                     flushinp();
                     getch();
-                    timeout(50);
+                    /* Restaura controle do terminal para ncurses */
+                    reset_prog_mode();
+                    refresh();
                     flushinp();
                     if (jogo_obter_estado(jogo) == JOGO_PAUSADO) {
                         jogo_pausar(jogo); /* Despausa */
@@ -363,6 +368,9 @@ int main(int argc, char* argv[]) {
                 timeout(-1);
                 flushinp();
                 getch();
+                reset_prog_mode();
+                refresh();
+                flushinp();
                 break;
 
             case 3: /* Sair */
