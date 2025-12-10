@@ -179,10 +179,8 @@ void menu_configuracoes(ConfigJogo* config) {
 
 bool loop_partida(void) {
     int tecla;
-    int contador_display = 0;
 
     flushinp(); /* Limpa qualquer input pendente */
-    timeout(50); /* Timeout de 50ms para getch */
 
     while (jogo->executando) {
         /* Verifica estado do jogo */
@@ -204,40 +202,35 @@ bool loop_partida(void) {
             return true; /* Volta ao menu */
         }
 
-        /* Atualiza display a cada ~100ms (2 ciclos de 50ms) */
-        contador_display++;
-        if (contador_display >= 2) {
-            contador_display = 0;
+        /* Atualiza a tela */
+        erase();
 
-            /* Atualiza a tela diretamente (sem thread separada) */
-            erase();
+        int linha = 0;
+        attron(COLOR_PAIR(COR_TITULO) | A_BOLD);
+        mvprintw(linha, (COLS - 50) / 2, "KEEP SOLVING AND NOBODY EXPLODES - Versao de Treino");
+        attroff(COLOR_PAIR(COR_TITULO) | A_BOLD);
+        linha += 2;
 
-            int linha = 0;
-            attron(COLOR_PAIR(COR_TITULO) | A_BOLD);
-            mvprintw(linha, (COLS - 50) / 2, "KEEP SOLVING AND NOBODY EXPLODES - Versao de Treino");
-            attroff(COLOR_PAIR(COR_TITULO) | A_BOLD);
-            linha += 2;
+        display_modulos_pendentes(jogo, linha);
+        linha += ALTURA_MODULOS + 1;
+        display_bancadas(jogo, linha);
+        linha += ALTURA_BANCADAS + 1;
+        display_tedax(jogo, linha);
+        linha += ALTURA_TEDAX + 1;
+        display_status(jogo, linha);
+        linha += ALTURA_STATUS + 1;
+        display_comando(jogo, linha);
 
-            display_modulos_pendentes(jogo, linha);
-            linha += ALTURA_MODULOS + 1;
-            display_bancadas(jogo, linha);
-            linha += ALTURA_BANCADAS + 1;
-            display_tedax(jogo, linha);
-            linha += ALTURA_TEDAX + 1;
-            display_status(jogo, linha);
-            linha += ALTURA_STATUS + 1;
-            display_comando(jogo, linha);
-
-            if (estado == JOGO_PAUSADO) {
-                attron(COLOR_PAIR(COR_ALERTA) | A_BOLD | A_BLINK);
-                mvprintw(LINES / 2, (COLS - 20) / 2, "*** JOGO PAUSADO ***");
-                attroff(COLOR_PAIR(COR_ALERTA) | A_BOLD | A_BLINK);
-            }
-
-            refresh();
+        if (estado == JOGO_PAUSADO) {
+            attron(COLOR_PAIR(COR_ALERTA) | A_BOLD | A_BLINK);
+            mvprintw(LINES / 2, (COLS - 20) / 2, "*** JOGO PAUSADO ***");
+            attroff(COLOR_PAIR(COR_ALERTA) | A_BOLD | A_BLINK);
         }
 
-        /* Processa entrada do usuario */
+        refresh();
+
+        /* Processa entrada do usuario - timeout de 100ms */
+        timeout(100);
         tecla = getch();
 
         if (tecla != ERR) {
