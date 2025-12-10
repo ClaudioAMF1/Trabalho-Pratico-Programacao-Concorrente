@@ -53,18 +53,19 @@ void display_finalizar(void) {
 }
 
 void display_init_cores(void) {
+    /* Usar cores mais visiveis */
     init_pair(COR_PADRAO,      COLOR_WHITE,  COLOR_BLACK);
     init_pair(COR_TITULO,      COLOR_CYAN,   COLOR_BLACK);
     init_pair(COR_SUCESSO,     COLOR_GREEN,  COLOR_BLACK);
     init_pair(COR_ERRO,        COLOR_RED,    COLOR_BLACK);
     init_pair(COR_ALERTA,      COLOR_YELLOW, COLOR_BLACK);
-    init_pair(COR_INFO,        COLOR_BLUE,   COLOR_BLACK);
-    init_pair(COR_DESTAQUE,    COLOR_BLACK,  COLOR_WHITE);
+    init_pair(COR_INFO,        COLOR_CYAN,   COLOR_BLACK);
+    init_pair(COR_DESTAQUE,    COLOR_BLACK,  COLOR_CYAN);
     init_pair(COR_TEDAX_LIVRE, COLOR_GREEN,  COLOR_BLACK);
     init_pair(COR_TEDAX_OCUP,  COLOR_RED,    COLOR_BLACK);
     init_pair(COR_BANCADA,     COLOR_MAGENTA,COLOR_BLACK);
-    init_pair(COR_MODULO,      COLOR_YELLOW, COLOR_BLACK);
-    init_pair(COR_TEMPO,       COLOR_RED,    COLOR_BLACK);
+    init_pair(COR_MODULO,      COLOR_WHITE,  COLOR_BLACK);
+    init_pair(COR_TEMPO,       COLOR_YELLOW, COLOR_BLACK);
 }
 
 void display_limpar(void) {
@@ -129,33 +130,47 @@ void display_modulos_pendentes(EstadoJogoCompleto* estado, int linha) {
     if (!estado) return;
 
     int largura = COLS - 4;
-    desenhar_caixa(linha, 2, ALTURA_MODULOS, largura, "MODULOS PENDENTES");
+    desenhar_caixa(linha, 2, ALTURA_MODULOS, largura, "MODULOS PENDENTES - Copie a INSTRUCAO para seu comando!");
 
     pthread_mutex_lock(&estado->fila_modulos.mutex);
     int qtd = estado->fila_modulos.quantidade;
 
     if (qtd == 0) {
-        attron(COLOR_PAIR(COR_SUCESSO));
-        mvprintw(linha + 2, 4, "Nenhum modulo pendente!");
-        attroff(COLOR_PAIR(COR_SUCESSO));
+        attron(COLOR_PAIR(COR_SUCESSO) | A_BOLD);
+        mvprintw(linha + 2, 4, "Nenhum modulo pendente! Aguarde novos modulos...");
+        attroff(COLOR_PAIR(COR_SUCESSO) | A_BOLD);
     } else {
-        int col = 4;
+        /* Cabecalho explicativo */
+        attron(COLOR_PAIR(COR_INFO));
+        mvprintw(linha + 1, 4, "ID   TIPO  INSTRUCAO (copie!)");
+        attroff(COLOR_PAIR(COR_INFO));
+
         int lin = linha + 2;
-        int max_por_linha = (largura - 4) / 25;
+        int col = 4;
         int mostrados = 0;
 
         for (int i = 0; i < qtd && mostrados < 6; i++) {
             int idx = (estado->fila_modulos.inicio + i) % MAX_MODULOS_PENDENTES;
             Modulo* m = &estado->fila_modulos.modulos[idx];
 
-            attron(COLOR_PAIR(COR_MODULO));
-            mvprintw(lin, col, "[%d] %c: %s",
-                    m->id, char_tipo_modulo(m->tipo), m->instrucao);
-            attroff(COLOR_PAIR(COR_MODULO));
+            /* ID em destaque */
+            attron(COLOR_PAIR(COR_ALERTA) | A_BOLD);
+            mvprintw(lin, col, "[%d]", m->id);
+            attroff(COLOR_PAIR(COR_ALERTA) | A_BOLD);
 
-            col += 25;
+            /* Tipo */
+            attron(COLOR_PAIR(COR_SUCESSO));
+            mvprintw(lin, col + 5, "%c:", char_tipo_modulo(m->tipo));
+            attroff(COLOR_PAIR(COR_SUCESSO));
+
+            /* Instrucao em destaque */
+            attron(COLOR_PAIR(COR_ERRO) | A_BOLD);
+            mvprintw(lin, col + 8, "%s", m->instrucao);
+            attroff(COLOR_PAIR(COR_ERRO) | A_BOLD);
+
+            col += 22;
             mostrados++;
-            if (mostrados % max_por_linha == 0) {
+            if (mostrados % 4 == 0) {
                 col = 4;
                 lin++;
             }
@@ -171,9 +186,9 @@ void display_modulos_pendentes(EstadoJogoCompleto* estado, int linha) {
     pthread_mutex_unlock(&estado->fila_modulos.mutex);
 
     /* Mostra quantidade */
-    attron(COLOR_PAIR(qtd >= MAX_MODULOS_PENDENTES - 2 ? COR_ERRO : COR_INFO));
+    attron(COLOR_PAIR(qtd >= MAX_MODULOS_PENDENTES - 2 ? COR_ERRO : COR_INFO) | A_BOLD);
     mvprintw(linha, largura - 10, " [%d/%d] ", qtd, MAX_MODULOS_PENDENTES);
-    attroff(COLOR_PAIR(qtd >= MAX_MODULOS_PENDENTES - 2 ? COR_ERRO : COR_INFO));
+    attroff(COLOR_PAIR(qtd >= MAX_MODULOS_PENDENTES - 2 ? COR_ERRO : COR_INFO) | A_BOLD);
 }
 
 void display_bancadas(EstadoJogoCompleto* estado, int linha) {
@@ -305,7 +320,7 @@ void display_comando(EstadoJogoCompleto* estado, int linha) {
     if (!estado) return;
 
     int largura = COLS - 4;
-    desenhar_caixa(linha, 2, ALTURA_COMANDO, largura, "COMANDO");
+    desenhar_caixa(linha, 2, ALTURA_COMANDO + 2, largura, "DIGITE SEU COMANDO");
 
     pthread_mutex_lock(&estado->mutex_comando);
     char buffer[32];
@@ -313,14 +328,24 @@ void display_comando(EstadoJogoCompleto* estado, int linha) {
     buffer[sizeof(buffer) - 1] = '\0';
     pthread_mutex_unlock(&estado->mutex_comando);
 
-    attron(COLOR_PAIR(COR_DESTAQUE));
-    mvprintw(linha + 1, 4, "> %s_", buffer);
-    attroff(COLOR_PAIR(COR_DESTAQUE));
+    /* Instrucoes de como jogar */
+    attron(COLOR_PAIR(COR_ALERTA) | A_BOLD);
+    mvprintw(linha + 1, 4, "FORMATO: [Tedax 1-3][Tipo f/b/s/i][Bancada 1-3][Instrucao da tela]");
+    attroff(COLOR_PAIR(COR_ALERTA) | A_BOLD);
 
-    /* Ajuda de comandos */
     attron(COLOR_PAIR(COR_INFO));
-    mvprintw(linha + 1, 40, "[TEDAX][TIPO][BANCADA][INSTRUCAO]  Ex: 1f1rgb | 'q'=sair | 'p'=pausar | 'h'=ajuda");
+    mvprintw(linha + 2, 4, "EXEMPLO: Se aparece [1] f: rgb -> digite: 1f1rgb e pressione ENTER");
     attroff(COLOR_PAIR(COR_INFO));
+
+    /* Campo de entrada */
+    attron(COLOR_PAIR(COR_DESTAQUE) | A_BOLD);
+    mvprintw(linha + 3, 4, ">>> %s_", buffer);
+    attroff(COLOR_PAIR(COR_DESTAQUE) | A_BOLD);
+
+    /* Teclas de atalho */
+    attron(COLOR_PAIR(COR_PADRAO));
+    mvprintw(linha + 4, 4, "TECLAS: ENTER=enviar | BACKSPACE=apagar | p=pausar | h=ajuda | q=sair");
+    attroff(COLOR_PAIR(COR_PADRAO));
 }
 
 /* ==================== TELAS ESPECIAIS ==================== */
