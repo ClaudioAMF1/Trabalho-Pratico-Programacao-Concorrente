@@ -157,8 +157,7 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
     /* Inicia thread do timer */
     pthread_create(&estado->thread_timer, NULL, thread_timer, estado);
 
-    /* Inicia thread de display */
-    pthread_create(&estado->thread_display, NULL, thread_display, estado);
+    /* Display e tratado no loop principal (main.c) para evitar race condition */
 
     jogo_feedback(estado, "Partida iniciada! Boa sorte!");
 
@@ -184,7 +183,6 @@ void jogo_parar_partida(EstadoJogoCompleto* estado) {
     /* Aguarda threads */
     pthread_join(estado->thread_mural, NULL);
     pthread_join(estado->thread_timer, NULL);
-    pthread_join(estado->thread_display, NULL);
 }
 
 void jogo_pausar(EstadoJogoCompleto* estado) {
