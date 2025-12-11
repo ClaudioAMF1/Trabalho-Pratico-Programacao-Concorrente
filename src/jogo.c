@@ -41,39 +41,31 @@ int jogo_init(EstadoJogoCompleto* estado, ConfigJogo* config) {
     if (estado->config.dificuldade < 1) estado->config.dificuldade = 1;
     if (estado->config.dificuldade > 3) estado->config.dificuldade = 3;
 
-    /* Inicializa estado */
     estado->estado = JOGO_MENU;
     estado->executando = true;
     estado->proximo_id_modulo = 1;
 
-    /* Inicializa estatisticas */
     memset(&estado->stats, 0, sizeof(Estatisticas));
     estado->stats.tempo_restante = estado->config.tempo_partida;
 
-    /* Inicializa mutexes */
     pthread_mutex_init(&estado->mutex_estado, NULL);
     pthread_mutex_init(&estado->mutex_display, NULL);
     pthread_mutex_init(&estado->mutex_comando, NULL);
     pthread_cond_init(&estado->cond_fim_jogo, NULL);
 
-    /* Inicializa fila de modulos */
     fila_modulos_init(&estado->fila_modulos);
 
-    /* Inicializa bancadas */
     for (int i = 0; i < MAX_BANCADAS; i++) {
         bancada_init(&estado->bancadas[i], i);
     }
 
-    /* Inicializa tedax */
     for (int i = 0; i < MAX_TEDAX; i++) {
         tedax_init(&estado->tedax[i], i);
     }
 
-    /* Buffer de comando */
     memset(estado->buffer_comando, 0, sizeof(estado->buffer_comando));
     estado->pos_buffer = 0;
 
-    /* Mensagem de feedback */
     memset(estado->mensagem_feedback, 0, sizeof(estado->mensagem_feedback));
     estado->tempo_mensagem = 0;
 
@@ -162,18 +154,26 @@ void jogo_parar_partida(EstadoJogoCompleto* estado) {
 void jogo_pausar(EstadoJogoCompleto* estado) {
     if (!estado) return;
 
-    char mensagem[64] = "";
-    pthread_mutex_lock(&estado->mutex_estado);
+    /* Usa trylock para nao bloquear o loop principal */
+    if (pthread_mutex_trylock(&estado->mutex_estado) != 0) {
+        return;
+    }
+
+    const char* msg = NULL;
     if (estado->estado == JOGO_RODANDO) {
         estado->estado = JOGO_PAUSADO;
-        strcpy(mensagem, "Jogo pausado!");
+        msg = "Jogo pausado!";
     } else if (estado->estado == JOGO_PAUSADO) {
         estado->estado = JOGO_RODANDO;
-        strcpy(mensagem, "Jogo retomado!");
+        msg = "Jogo retomado!";
     }
-    pthread_mutex_unlock(&estado->mutex_estado);
 
-    if (strlen(mensagem) > 0) jogo_feedback(estado, mensagem);
+    if (msg) {
+        strncpy(estado->mensagem_feedback, msg, sizeof(estado->mensagem_feedback) - 1);
+        estado->tempo_mensagem = time(NULL);
+    }
+
+    pthread_mutex_unlock(&estado->mutex_estado);
 }
 
 bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
@@ -204,7 +204,12 @@ bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
 
 void jogo_adicionar_char_comando(EstadoJogoCompleto* estado, char c) {
     if (!estado) return;
-    pthread_mutex_lock(&estado->mutex_comando);
+
+    /* Usa trylock para nao bloquear o loop principal */
+    if (pthread_mutex_trylock(&estado->mutex_comando) != 0) {
+        return;
+    }
+
     if (estado->pos_buffer < (int)sizeof(estado->buffer_comando) - 1) {
         estado->buffer_comando[estado->pos_buffer++] = c;
         estado->buffer_comando[estado->pos_buffer] = '\0';
@@ -214,7 +219,12 @@ void jogo_adicionar_char_comando(EstadoJogoCompleto* estado, char c) {
 
 void jogo_remover_char_comando(EstadoJogoCompleto* estado) {
     if (!estado) return;
-    pthread_mutex_lock(&estado->mutex_comando);
+
+    /* Usa trylock para nao bloquear o loop principal */
+    if (pthread_mutex_trylock(&estado->mutex_comando) != 0) {
+        return;
+    }
+
     if (estado->pos_buffer > 0) {
         estado->buffer_comando[--estado->pos_buffer] = '\0';
     }
@@ -223,7 +233,12 @@ void jogo_remover_char_comando(EstadoJogoCompleto* estado) {
 
 void jogo_limpar_comando(EstadoJogoCompleto* estado) {
     if (!estado) return;
-    pthread_mutex_lock(&estado->mutex_comando);
+
+    /* Usa trylock para nao bloquear o loop principal */
+    if (pthread_mutex_trylock(&estado->mutex_comando) != 0) {
+        return;
+    }
+
     memset(estado->buffer_comando, 0, sizeof(estado->buffer_comando));
     estado->pos_buffer = 0;
     pthread_mutex_unlock(&estado->mutex_comando);
@@ -265,7 +280,12 @@ bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
     Modulo modulo_encontrado;
     bool encontrou = false;
 
-    pthread_mutex_lock(&estado->fila_modulos.mutex);
+    /* Usa trylock para nao bloquear */
+    if (pthread_mutex_trylock(&estado->fila_modulos.mutex) != 0) {
+        jogo_feedback(estado, "Sistema ocupado, tente novamente!");
+        return false;
+    }
+
     for (int i = 0; i < estado->fila_modulos.quantidade; i++) {
         int idx = (estado->fila_modulos.inicio + i) % MAX_MODULOS_PENDENTES;
         if (estado->fila_modulos.modulos[idx].tipo == tipo) {
@@ -296,47 +316,60 @@ bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
 
     jogo_feedback(estado, "Tedax %d designado: %s -> Bancada %d", tedax_num, modulo_encontrado.nome, bancada_num);
 
-    /* CORRECAO FINAL DEADLOCK: Pega a quantidade fora do lock de estado */
     int qtd = fila_modulos_quantidade(&estado->fila_modulos);
 
-    pthread_mutex_lock(&estado->mutex_estado);
-    estado->stats.modulos_pendentes = qtd;
-    pthread_mutex_unlock(&estado->mutex_estado);
+    /* Atualiza estatisticas sem bloquear */
+    if (pthread_mutex_trylock(&estado->mutex_estado) == 0) {
+        estado->stats.modulos_pendentes = qtd;
+        pthread_mutex_unlock(&estado->mutex_estado);
+    }
 
     return true;
 }
 
 bool jogo_executar_comando(EstadoJogoCompleto* estado) {
     if (!estado) return false;
-    pthread_mutex_lock(&estado->mutex_comando);
+
+    /* Usa trylock para nao bloquear o loop principal */
+    if (pthread_mutex_trylock(&estado->mutex_comando) != 0) {
+        return false;
+    }
+
     char comando[32];
     strncpy(comando, estado->buffer_comando, sizeof(comando) - 1);
     comando[sizeof(comando) - 1] = '\0';
+
+    memset(estado->buffer_comando, 0, sizeof(estado->buffer_comando));
+    estado->pos_buffer = 0;
+
     pthread_mutex_unlock(&estado->mutex_comando);
 
-    if (strlen(comando) == 0) return false;
-    bool resultado = jogo_processar_comando(estado, comando);
-    jogo_limpar_comando(estado);
-    return resultado;
+    if (strlen(comando) == 0) {
+        return false;
+    }
+
+    return jogo_processar_comando(estado, comando);
 }
 
 void jogo_feedback(EstadoJogoCompleto* estado, const char* formato, ...) {
     if (!estado || !formato) return;
     va_list args;
     va_start(args, formato);
-    pthread_mutex_lock(&estado->mutex_estado);
-    vsnprintf(estado->mensagem_feedback, sizeof(estado->mensagem_feedback), formato, args);
-    estado->tempo_mensagem = time(NULL);
-    pthread_mutex_unlock(&estado->mutex_estado);
+
+    /* Usa trylock para nao bloquear */
+    if (pthread_mutex_trylock(&estado->mutex_estado) == 0) {
+        vsnprintf(estado->mensagem_feedback, sizeof(estado->mensagem_feedback), formato, args);
+        estado->tempo_mensagem = time(NULL);
+        pthread_mutex_unlock(&estado->mutex_estado);
+    }
+
     va_end(args);
 }
 
 EstadoJogo jogo_obter_estado(EstadoJogoCompleto* estado) {
     if (!estado) return JOGO_SAINDO;
-    pthread_mutex_lock(&estado->mutex_estado);
-    EstadoJogo est = estado->estado;
-    pthread_mutex_unlock(&estado->mutex_estado);
-    return est;
+    /* Leitura direta sem lock - evita bloqueio no loop principal */
+    return estado->estado;
 }
 
 void jogo_definir_estado(EstadoJogoCompleto* estado, EstadoJogo novo_estado) {
