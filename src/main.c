@@ -243,17 +243,20 @@ bool loop_partida(void) {
 
                 case 'h':
                 case 'H':
-                    if (jogo_obter_estado(jogo) == JOGO_RODANDO) {
-                        jogo_pausar(jogo);
-                    }
-                    nodelay(stdscr, FALSE);
-                    display_ajuda();
-                    flushinp();
-                    getch();
-                    nodelay(stdscr, TRUE);
-                    flushinp();
-                    if (jogo_obter_estado(jogo) == JOGO_PAUSADO) {
-                        jogo_pausar(jogo);
+                    {
+                        EstadoJogo estado_anterior = jogo_obter_estado(jogo);
+                        if (estado_anterior == JOGO_RODANDO) {
+                            jogo_pausar(jogo);
+                        }
+                        nodelay(stdscr, FALSE);
+                        display_ajuda();
+                        flushinp();
+                        getch();
+                        nodelay(stdscr, TRUE);
+                        flushinp();
+                        if (estado_anterior == JOGO_RODANDO && jogo_obter_estado(jogo) == JOGO_PAUSADO) {
+                            jogo_pausar(jogo);
+                        }
                     }
                     break;
 
