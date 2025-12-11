@@ -83,26 +83,13 @@ int jogo_init(EstadoJogoCompleto* estado, ConfigJogo* config) {
 void jogo_finalizar(EstadoJogoCompleto* estado) {
     if (!estado) return;
 
-    /* Para a execucao */
     estado->executando = false;
-
-    /* Para as threads */
     jogo_parar_partida(estado);
 
-    /* Destroi bancadas */
-    for (int i = 0; i < MAX_BANCADAS; i++) {
-        bancada_destroy(&estado->bancadas[i]);
-    }
-
-    /* Destroi tedax */
-    for (int i = 0; i < MAX_TEDAX; i++) {
-        tedax_destroy(&estado->tedax[i]);
-    }
-
-    /* Destroi fila de modulos */
+    for (int i = 0; i < MAX_BANCADAS; i++) bancada_destroy(&estado->bancadas[i]);
+    for (int i = 0; i < MAX_TEDAX; i++) tedax_destroy(&estado->tedax[i]);
     fila_modulos_destroy(&estado->fila_modulos);
 
-    /* Destroi mutexes */
     pthread_mutex_destroy(&estado->mutex_estado);
     pthread_mutex_destroy(&estado->mutex_display);
     pthread_mutex_destroy(&estado->mutex_comando);
@@ -112,7 +99,6 @@ void jogo_finalizar(EstadoJogoCompleto* estado) {
 int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
     if (!estado) return -1;
 
-    /* Reinicializa estatisticas */
     pthread_mutex_lock(&estado->mutex_estado);
     memset(&estado->stats, 0, sizeof(Estatisticas));
     estado->stats.tempo_restante = estado->config.tempo_partida;
@@ -121,13 +107,11 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
     estado->estado = JOGO_RODANDO;
     pthread_mutex_unlock(&estado->mutex_estado);
 
-    /* Limpa a fila de modulos */
     while (!fila_modulos_vazia(&estado->fila_modulos)) {
         Modulo m;
         fila_modulos_remover(&estado->fila_modulos, &m);
     }
 
-    /* Reseta tedax */
     for (int i = 0; i < estado->config.num_tedax; i++) {
         pthread_mutex_lock(&estado->tedax[i].mutex);
         estado->tedax[i].estado = ESTADO_LIVRE;
@@ -137,7 +121,6 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
         pthread_mutex_unlock(&estado->tedax[i].mutex);
     }
 
-    /* Reseta bancadas */
     for (int i = 0; i < estado->config.num_bancadas; i++) {
         pthread_mutex_lock(&estado->bancadas[i].mutex);
         estado->bancadas[i].estado = ESTADO_LIVRE;
@@ -146,18 +129,12 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
         pthread_mutex_unlock(&estado->bancadas[i].mutex);
     }
 
-    /* Inicia threads dos tedax */
     for (int i = 0; i < estado->config.num_tedax; i++) {
         tedax_iniciar_thread(&estado->tedax[i]);
     }
 
-    /* Inicia thread do mural de modulos */
     pthread_create(&estado->thread_mural, NULL, thread_mural_modulos, estado);
-
-    /* Inicia thread do timer */
     pthread_create(&estado->thread_timer, NULL, thread_timer, estado);
-
-    /* Display e tratado no loop principal (main.c) para evitar race condition */
 
     jogo_feedback(estado, "Partida iniciada! Boa sorte!");
 
@@ -167,12 +144,10 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
 void jogo_parar_partida(EstadoJogoCompleto* estado) {
     if (!estado) return;
 
-    /* Para as threads dos tedax */
     for (int i = 0; i < estado->config.num_tedax; i++) {
         tedax_parar_thread(&estado->tedax[i]);
     }
 
-    /* Sinaliza fim do jogo */
     pthread_mutex_lock(&estado->mutex_estado);
     if (estado->estado == JOGO_RODANDO || estado->estado == JOGO_PAUSADO) {
         estado->estado = JOGO_SAINDO;
@@ -180,7 +155,6 @@ void jogo_parar_partida(EstadoJogoCompleto* estado) {
     pthread_cond_broadcast(&estado->cond_fim_jogo);
     pthread_mutex_unlock(&estado->mutex_estado);
 
-    /* Aguarda threads */
     pthread_join(estado->thread_mural, NULL);
     pthread_join(estado->thread_timer, NULL);
 }
@@ -188,56 +162,48 @@ void jogo_parar_partida(EstadoJogoCompleto* estado) {
 void jogo_pausar(EstadoJogoCompleto* estado) {
     if (!estado) return;
 
+    char mensagem[64] = "";
     pthread_mutex_lock(&estado->mutex_estado);
     if (estado->estado == JOGO_RODANDO) {
         estado->estado = JOGO_PAUSADO;
-        jogo_feedback(estado, "Jogo pausado!");
+        strcpy(mensagem, "Jogo pausado!");
     } else if (estado->estado == JOGO_PAUSADO) {
         estado->estado = JOGO_RODANDO;
-        jogo_feedback(estado, "Jogo retomado!");
+        strcpy(mensagem, "Jogo retomado!");
     }
     pthread_mutex_unlock(&estado->mutex_estado);
+
+    if (strlen(mensagem) > 0) jogo_feedback(estado, mensagem);
 }
 
 bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
     if (!estado) return true;
 
     pthread_mutex_lock(&estado->mutex_estado);
-
     bool fim = false;
     EstadoJogo novo_estado = estado->estado;
 
-    /* Verifica vitoria */
     if (!estado->config.modo_infinito &&
         estado->stats.modulos_desarmados >= estado->config.modulos_para_vencer) {
         novo_estado = JOGO_VITORIA;
         fim = true;
     }
-
-    /* Verifica derrota por tempo */
     if (estado->stats.tempo_restante <= 0) {
         novo_estado = JOGO_DERROTA;
         fim = true;
     }
-
-    /* Verifica derrota por acumulo de modulos */
     if (estado->fila_modulos.quantidade >= MAX_MODULOS_PENDENTES) {
         novo_estado = JOGO_DERROTA;
         fim = true;
     }
-
-    if (fim) {
-        estado->estado = novo_estado;
-    }
+    if (fim) estado->estado = novo_estado;
 
     pthread_mutex_unlock(&estado->mutex_estado);
-
     return fim;
 }
 
 void jogo_adicionar_char_comando(EstadoJogoCompleto* estado, char c) {
     if (!estado) return;
-
     pthread_mutex_lock(&estado->mutex_comando);
     if (estado->pos_buffer < (int)sizeof(estado->buffer_comando) - 1) {
         estado->buffer_comando[estado->pos_buffer++] = c;
@@ -248,7 +214,6 @@ void jogo_adicionar_char_comando(EstadoJogoCompleto* estado, char c) {
 
 void jogo_remover_char_comando(EstadoJogoCompleto* estado) {
     if (!estado) return;
-
     pthread_mutex_lock(&estado->mutex_comando);
     if (estado->pos_buffer > 0) {
         estado->buffer_comando[--estado->pos_buffer] = '\0';
@@ -258,53 +223,45 @@ void jogo_remover_char_comando(EstadoJogoCompleto* estado) {
 
 void jogo_limpar_comando(EstadoJogoCompleto* estado) {
     if (!estado) return;
-
     pthread_mutex_lock(&estado->mutex_comando);
     memset(estado->buffer_comando, 0, sizeof(estado->buffer_comando));
     estado->pos_buffer = 0;
     pthread_mutex_unlock(&estado->mutex_comando);
 }
 
-/* Formato: [TEDAX][TIPO][BANCADA][INSTRUCAO] ex: 1f1rgb */
 bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
     if (!estado || !comando || strlen(comando) < 4) {
-        jogo_feedback(estado, "Comando muito curto! Formato: [TEDAX][TIPO][BANCADA][INSTRUCAO]");
+        jogo_feedback(estado, "Comando muito curto! [TEDAX][TIPO][BANCADA][INSTRUCAO]");
         return false;
     }
 
-    /* Parse do comando */
     int tedax_num = comando[0] - '0';
     char tipo_char = tolower(comando[1]);
     int bancada_num = comando[2] - '0';
     const char* instrucao = &comando[3];
 
-    /* Valida tedax */
     if (tedax_num < 1 || tedax_num > estado->config.num_tedax) {
         jogo_feedback(estado, "Tedax invalido! Use 1-%d", estado->config.num_tedax);
         return false;
     }
 
-    /* Valida tipo de modulo */
     TipoModulo tipo = tipo_modulo_por_char(tipo_char);
     if (tipo == (TipoModulo)-1) {
-        jogo_feedback(estado, "Tipo de modulo invalido! Use: f/b/s/i");
+        jogo_feedback(estado, "Tipo invalido! Use: f/b/s/i");
         return false;
     }
 
-    /* Valida bancada */
     if (bancada_num < 1 || bancada_num > estado->config.num_bancadas) {
         jogo_feedback(estado, "Bancada invalida! Use 1-%d", estado->config.num_bancadas);
         return false;
     }
 
-    /* Verifica se o tedax esta disponivel */
     Tedax* tedax = &estado->tedax[tedax_num - 1];
     if (!tedax_disponivel(tedax)) {
         jogo_feedback(estado, "Tedax %d esta ocupado!", tedax_num);
         return false;
     }
 
-    /* Procura um modulo do tipo especificado na fila */
     Modulo modulo_encontrado;
     bool encontrou = false;
 
@@ -314,13 +271,10 @@ bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
         if (estado->fila_modulos.modulos[idx].tipo == tipo) {
             memcpy(&modulo_encontrado, &estado->fila_modulos.modulos[idx], sizeof(Modulo));
             encontrou = true;
-
-            /* Remove o modulo da fila */
             for (int j = i; j < estado->fila_modulos.quantidade - 1; j++) {
                 int idx_atual = (estado->fila_modulos.inicio + j) % MAX_MODULOS_PENDENTES;
                 int idx_prox = (estado->fila_modulos.inicio + j + 1) % MAX_MODULOS_PENDENTES;
-                memcpy(&estado->fila_modulos.modulos[idx_atual],
-                       &estado->fila_modulos.modulos[idx_prox], sizeof(Modulo));
+                memcpy(&estado->fila_modulos.modulos[idx_atual], &estado->fila_modulos.modulos[idx_prox], sizeof(Modulo));
             }
             estado->fila_modulos.fim = (estado->fila_modulos.fim - 1 + MAX_MODULOS_PENDENTES) % MAX_MODULOS_PENDENTES;
             estado->fila_modulos.quantidade--;
@@ -334,20 +288,19 @@ bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
         return false;
     }
 
-    /* Designa o modulo para o tedax */
     if (!tedax_designar_modulo(tedax, &modulo_encontrado, bancada_num - 1, instrucao)) {
-        /* Retorna modulo para a fila */
         fila_modulos_adicionar(&estado->fila_modulos, &modulo_encontrado);
         jogo_feedback(estado, "Erro ao designar modulo para Tedax %d!", tedax_num);
         return false;
     }
 
-    jogo_feedback(estado, "Tedax %d designado: %s [%s] -> Bancada %d",
-                 tedax_num, modulo_encontrado.nome, instrucao, bancada_num);
+    jogo_feedback(estado, "Tedax %d designado: %s -> Bancada %d", tedax_num, modulo_encontrado.nome, bancada_num);
 
-    /* Atualiza estatisticas */
+    /* CORRECAO FINAL DEADLOCK: Pega a quantidade fora do lock de estado */
+    int qtd = fila_modulos_quantidade(&estado->fila_modulos);
+
     pthread_mutex_lock(&estado->mutex_estado);
-    estado->stats.modulos_pendentes = fila_modulos_quantidade(&estado->fila_modulos);
+    estado->stats.modulos_pendentes = qtd;
     pthread_mutex_unlock(&estado->mutex_estado);
 
     return true;
@@ -355,56 +308,44 @@ bool jogo_processar_comando(EstadoJogoCompleto* estado, const char* comando) {
 
 bool jogo_executar_comando(EstadoJogoCompleto* estado) {
     if (!estado) return false;
-
     pthread_mutex_lock(&estado->mutex_comando);
     char comando[32];
     strncpy(comando, estado->buffer_comando, sizeof(comando) - 1);
     comando[sizeof(comando) - 1] = '\0';
     pthread_mutex_unlock(&estado->mutex_comando);
 
-    if (strlen(comando) == 0) {
-        return false;
-    }
-
+    if (strlen(comando) == 0) return false;
     bool resultado = jogo_processar_comando(estado, comando);
     jogo_limpar_comando(estado);
-
     return resultado;
 }
 
 void jogo_feedback(EstadoJogoCompleto* estado, const char* formato, ...) {
     if (!estado || !formato) return;
-
     va_list args;
     va_start(args, formato);
-
     pthread_mutex_lock(&estado->mutex_estado);
     vsnprintf(estado->mensagem_feedback, sizeof(estado->mensagem_feedback), formato, args);
     estado->tempo_mensagem = time(NULL);
     pthread_mutex_unlock(&estado->mutex_estado);
-
     va_end(args);
 }
 
 EstadoJogo jogo_obter_estado(EstadoJogoCompleto* estado) {
     if (!estado) return JOGO_SAINDO;
-
     pthread_mutex_lock(&estado->mutex_estado);
     EstadoJogo est = estado->estado;
     pthread_mutex_unlock(&estado->mutex_estado);
-
     return est;
 }
 
 void jogo_definir_estado(EstadoJogoCompleto* estado, EstadoJogo novo_estado) {
     if (!estado) return;
-
     pthread_mutex_lock(&estado->mutex_estado);
     estado->estado = novo_estado;
     pthread_mutex_unlock(&estado->mutex_estado);
 }
 
-/* Thread do timer - decrementa tempo a cada segundo */
 void* thread_timer(void* arg) {
     EstadoJogoCompleto* estado = (EstadoJogoCompleto*)arg;
     if (!estado) return NULL;
@@ -416,37 +357,20 @@ void* thread_timer(void* arg) {
 
         if (est == JOGO_RODANDO) {
             sleep(1);
-
             pthread_mutex_lock(&estado->mutex_estado);
-            if (estado->stats.tempo_restante > 0) {
-                estado->stats.tempo_restante--;
-            }
+            if (estado->stats.tempo_restante > 0) estado->stats.tempo_restante--;
             pthread_mutex_unlock(&estado->mutex_estado);
-
-            /* Verifica fim de jogo */
-            if (jogo_verificar_fim(estado)) {
-                break;
-            }
+            if (jogo_verificar_fim(estado)) break;
         } else if (est == JOGO_PAUSADO) {
             usleep(100000);
-        } else if (est == JOGO_VITORIA || est == JOGO_DERROTA || est == JOGO_SAINDO) {
-            break;
         } else {
-            usleep(100000);
+            break;
         }
     }
-
     return NULL;
 }
 
 void* thread_coordenador(void* arg) {
-    EstadoJogoCompleto* estado = (EstadoJogoCompleto*)arg;
-    if (!estado) return NULL;
-
-    /* Esta thread foi substituida pelo main loop */
-    while (estado->executando) {
-        usleep(100000);
-    }
-
+    (void)arg;
     return NULL;
 }

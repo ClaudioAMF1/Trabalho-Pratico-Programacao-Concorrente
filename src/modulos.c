@@ -214,11 +214,9 @@ Modulo gerar_modulo_aleatorio(int id, int dificuldade) {
     /* Configura baseado no tipo */
     switch (m.tipo) {
         case MODULO_FIOS:
-            /* Cortar fios: parametro = quantidade de cortes (2-4) */
             m.parametro = 2 + (rand() % 3);
             m.tempo_resolucao = 3 + dificuldade;
             snprintf(m.nome, MAX_NOME_MODULO, "Fios #%d", id);
-            /* Gera sequencia de cores (r=red, g=green, b=blue, y=yellow) */
             {
                 char cores[] = {'r', 'g', 'b', 'y'};
                 m.instrucao[0] = '\0';
@@ -230,21 +228,17 @@ Modulo gerar_modulo_aleatorio(int id, int dificuldade) {
             break;
 
         case MODULO_BOTAO:
-            /* Pressionar botao: parametro = quantidade de pressionamentos (2-5) */
             m.parametro = 2 + (rand() % 4);
             m.tempo_resolucao = 2 + dificuldade;
             snprintf(m.nome, MAX_NOME_MODULO, "Botao #%d", id);
-            /* Instrucao: repetir 'p' N vezes */
             memset(m.instrucao, 'p', m.parametro);
             m.instrucao[m.parametro] = '\0';
             break;
 
         case MODULO_SEQUENCIA:
-            /* Sequencia de teclas: parametro = tamanho (3-5) */
             m.parametro = 3 + (rand() % 3);
             m.tempo_resolucao = 4 + dificuldade;
             snprintf(m.nome, MAX_NOME_MODULO, "Seq #%d", id);
-            /* Gera sequencia de numeros */
             for (int i = 0; i < m.parametro; i++) {
                 m.instrucao[i] = '1' + (rand() % 4);
             }
@@ -252,11 +246,9 @@ Modulo gerar_modulo_aleatorio(int id, int dificuldade) {
             break;
 
         case MODULO_SIMON:
-            /* Simon diz: parametro = tamanho da sequencia (3-4) */
             m.parametro = 3 + (rand() % 2);
             m.tempo_resolucao = 5 + dificuldade;
             snprintf(m.nome, MAX_NOME_MODULO, "Simon #%d", id);
-            /* Gera sequencia UDLR (up, down, left, right) */
             {
                 char dirs[] = {'u', 'd', 'l', 'r'};
                 for (int i = 0; i < m.parametro; i++) {
@@ -293,6 +285,7 @@ void* thread_mural_modulos(void* arg) {
         }
 
         /* Verifica se pode adicionar mais modulos */
+        /* Nota: fila_modulos_cheia usa seu proprio mutex */
         if (!fila_modulos_cheia(&estado->fila_modulos)) {
             /* Gera um novo modulo */
             pthread_mutex_lock(&estado->mutex_estado);
@@ -303,9 +296,12 @@ void* thread_mural_modulos(void* arg) {
             Modulo novo = gerar_modulo_aleatorio(id, dif);
 
             if (fila_modulos_adicionar(&estado->fila_modulos, &novo)) {
+                /* CORRECAO DEADLOCK: Pega quantidade SEM segurar mutex_estado */
+                int qtd_pendentes = fila_modulos_quantidade(&estado->fila_modulos);
+                
                 pthread_mutex_lock(&estado->mutex_estado);
                 estado->stats.modulos_gerados++;
-                estado->stats.modulos_pendentes = fila_modulos_quantidade(&estado->fila_modulos);
+                estado->stats.modulos_pendentes = qtd_pendentes;
                 pthread_mutex_unlock(&estado->mutex_estado);
 
                 jogo_feedback(estado, "Novo modulo: %s [%c] - Instrucao: %s",
@@ -317,7 +313,6 @@ void* thread_mural_modulos(void* arg) {
         int intervalo = INTERVALO_GERACAO_MIN +
                        (rand() % (INTERVALO_GERACAO_MAX - INTERVALO_GERACAO_MIN + 1));
 
-        /* Ajusta intervalo pela dificuldade */
         pthread_mutex_lock(&estado->mutex_estado);
         int dif = estado->config.dificuldade;
         pthread_mutex_unlock(&estado->mutex_estado);
@@ -325,7 +320,7 @@ void* thread_mural_modulos(void* arg) {
         intervalo = intervalo - dif + 1;
         if (intervalo < 2) intervalo = 2;
 
-        /* Aguarda o intervalo, verificando se deve parar */
+        /* Aguarda o intervalo */
         for (int i = 0; i < intervalo * 10 && estado->executando; i++) {
             usleep(100000); /* 100ms */
 
