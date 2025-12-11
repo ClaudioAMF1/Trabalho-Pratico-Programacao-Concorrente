@@ -28,13 +28,6 @@ int display_init(void) {
     keypad(stdscr, TRUE);
     curs_set(1);
     mousemask(0, NULL);
-    intrflush(stdscr, FALSE);
-    scrollok(stdscr, FALSE);
-    idlok(stdscr, FALSE);
-    leaveok(stdscr, FALSE);
-
-    /* Salva o modo do programa para poder restaurar depois */
-    def_prog_mode();
 
     display_init_cores();
 

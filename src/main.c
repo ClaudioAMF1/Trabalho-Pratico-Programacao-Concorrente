@@ -35,12 +35,7 @@ int menu_principal(ConfigJogo* config) {
     int opcao = 0;
     int tecla;
 
-    /* Modo bloqueante para o menu */
-    timeout(-1);
-    cbreak();
-    noecho();
-    keypad(stdscr, TRUE);
-    curs_set(0);
+    nodelay(stdscr, FALSE); /* Menu usa getch bloqueante */
     flushinp();
 
     while (1) {
@@ -66,9 +61,7 @@ void menu_configuracoes(ConfigJogo* config) {
     int num_campos = 7;
     int tecla;
 
-    timeout(-1);
-    cbreak();
-    noecho();
+    nodelay(stdscr, FALSE);
     flushinp();
 
     while (1) {
@@ -113,17 +106,17 @@ bool loop_partida(void) {
     keypad(stdscr, TRUE);
     curs_set(0);
     flushinp();
+    nodelay(stdscr, TRUE); /* getch nao-bloqueante */
 
     while (jogo->executando) {
+        /* Verifica estado do jogo */
         EstadoJogo estado = jogo_obter_estado(jogo);
 
         /* Verifica Fim de Jogo */
         if (estado == JOGO_VITORIA || estado == JOGO_DERROTA) {
+            nodelay(stdscr, FALSE);
             usleep(500000);
             jogo_parar_partida(jogo);
-
-            /* Modo bloqueante para tela final */
-            timeout(-1);
             display_fim_jogo(jogo);
             flushinp();
             getch();
@@ -156,14 +149,14 @@ bool loop_partida(void) {
         refresh();
         /* -------------------- */
 
-        /* Leitura de Input */
+        /* Processa entrada do usuario - nao-bloqueante */
         tecla = getch();
 
         if (tecla != ERR) {
             switch (tecla) {
                 case 'q':
                 case 'Q':
-                    jogo->executando = false; 
+                    nodelay(stdscr, FALSE);
                     jogo_feedback(jogo, "Saindo do jogo...");
                     jogo_parar_partida(jogo);
                     timeout(-1);
@@ -183,12 +176,14 @@ bool loop_partida(void) {
 
                 case 'h':
                 case 'H':
-                    if (jogo_obter_estado(jogo) == JOGO_RODANDO) jogo_pausar(jogo);
-                    timeout(-1);
+                    if (jogo_obter_estado(jogo) == JOGO_RODANDO) {
+                        jogo_pausar(jogo);
+                    }
+                    nodelay(stdscr, FALSE);
                     display_ajuda();
                     flushinp();
                     getch();
-                    timeout(100);
+                    nodelay(stdscr, TRUE);
                     flushinp();
                     if (jogo_obter_estado(jogo) == JOGO_PAUSADO) jogo_pausar(jogo);
                     break;
@@ -205,15 +200,22 @@ bool loop_partida(void) {
 
                 case '\n':
                 case KEY_ENTER:
-                    if (jogo_obter_estado(jogo) == JOGO_RODANDO) jogo_executar_comando(jogo);
+                    if (jogo_obter_estado(jogo) == JOGO_RODANDO) {
+                        jogo_executar_comando(jogo);
+                    }
                     break;
 
                 default:
-                    if (tecla >= 32 && tecla < 127) jogo_adicionar_char_comando(jogo, (char)tecla);
+                    if (tecla >= 32 && tecla < 127) {
+                        jogo_adicionar_char_comando(jogo, (char)tecla);
+                    }
                     break;
             }
         }
-        
+
+        /* Delay para nao sobrecarregar CPU - 20ms */
+        usleep(20000);
+
         if (sinal_recebido) {
             jogo_parar_partida(jogo);
             return false;
