@@ -136,6 +136,19 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
 void jogo_parar_partida(EstadoJogoCompleto* estado) {
     if (!estado) return;
 
+    /*
+     * Ao chegar em estados de vitoria/derrota, esta funcao eh chamada a
+     * partir da thread principal. Sem encerrar a flag 'executando', as
+     * threads do mural e do timer permanecem presas no loop interno
+     * (aguardando o estado voltar para JOGO_RODANDO). Isso fazia a thread
+     * principal bloquear no pthread_join, aparentando um travamento do
+     * jogo ate que um sinal (ex: CTRL+C) fosse enviado. Forcamos a flag
+     * para false antes de aguardar as threads terminarem.
+     */
+    pthread_mutex_lock(&estado->mutex_estado);
+    estado->executando = false;
+    pthread_mutex_unlock(&estado->mutex_estado);
+
     for (int i = 0; i < estado->config.num_tedax; i++) {
         tedax_parar_thread(&estado->tedax[i]);
     }
