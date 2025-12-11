@@ -23,7 +23,7 @@ EstadoJogoCompleto* jogo = NULL;
 static volatile sig_atomic_t sinal_recebido = 0;
 
 void handler_sinal(int sig) {
-    (void)sig; /* Evita warning */
+    (void)sig;
     sinal_recebido = 1;
     if (jogo) {
         jogo->executando = false;
@@ -40,48 +40,23 @@ int menu_principal(ConfigJogo* config) {
 
     while (1) {
         display_menu(opcao);
-
         tecla = getch();
 
         switch (tecla) {
-            case KEY_UP:
-            case 'w':
-            case 'W':
-                opcao = (opcao - 1 + 4) % 4;
-                break;
-
-            case KEY_DOWN:
-            case 's':
-            case 'S':
-                opcao = (opcao + 1) % 4;
-                break;
-
-            case '1':
-                return 0; /* Iniciar jogo */
-            case '2':
-                return 1; /* Configuracoes */
-            case '3':
-                return 2; /* Ajuda */
-            case '4':
-            case 'q':
-            case 'Q':
-                return 3; /* Sair */
-
-            case '\n':
-            case KEY_ENTER:
-                return opcao;
-
-            default:
-                break;
+            case KEY_UP: case 'w': case 'W': opcao = (opcao - 1 + 4) % 4; break;
+            case KEY_DOWN: case 's': case 'S': opcao = (opcao + 1) % 4; break;
+            case '1': return 0;
+            case '2': return 1;
+            case '3': return 2;
+            case '4': case 'q': case 'Q': return 3;
+            case '\n': case KEY_ENTER: return opcao;
         }
-
         if (sinal_recebido) return 3;
     }
 }
 
 void menu_configuracoes(ConfigJogo* config) {
     if (!config) return;
-
     int campo = 0;
     int num_campos = 7;
     int tecla;
@@ -91,88 +66,32 @@ void menu_configuracoes(ConfigJogo* config) {
 
     while (1) {
         display_configuracao(config, campo);
-
         tecla = getch();
 
         switch (tecla) {
-            case KEY_UP:
-            case 'w':
-            case 'W':
-                campo = (campo - 1 + num_campos) % num_campos;
-                break;
-
-            case KEY_DOWN:
-            case 's':
-            case 'S':
-                campo = (campo + 1) % num_campos;
-                break;
-
-            case KEY_LEFT:
-            case 'a':
-            case 'A':
+            case KEY_UP: case 'w': case 'W': campo = (campo - 1 + num_campos) % num_campos; break;
+            case KEY_DOWN: case 's': case 'S': campo = (campo + 1) % num_campos; break;
+            case KEY_LEFT: case 'a': case 'A':
                 switch (campo) {
-                    case 0: /* Tedax */
-                        if (config->num_tedax > 1) config->num_tedax--;
-                        break;
-                    case 1: /* Bancadas */
-                        if (config->num_bancadas > 1) config->num_bancadas--;
-                        break;
-                    case 2: /* Tempo */
-                        if (config->tempo_partida > 30) config->tempo_partida -= 30;
-                        break;
-                    case 3: /* Dificuldade */
-                        if (config->dificuldade > 1) config->dificuldade--;
-                        break;
-                    case 4: /* Modulos para vencer */
-                        if (config->modulos_para_vencer > 5) config->modulos_para_vencer -= 5;
-                        break;
-                    case 5: /* Modo infinito */
-                        config->modo_infinito = !config->modo_infinito;
-                        break;
-                }
-                break;
-
-            case KEY_RIGHT:
-            case 'd':
-            case 'D':
+                    case 0: if (config->num_tedax > 1) config->num_tedax--; break;
+                    case 1: if (config->num_bancadas > 1) config->num_bancadas--; break;
+                    case 2: if (config->tempo_partida > 30) config->tempo_partida -= 30; break;
+                    case 3: if (config->dificuldade > 1) config->dificuldade--; break;
+                    case 4: if (config->modulos_para_vencer > 5) config->modulos_para_vencer -= 5; break;
+                    case 5: config->modo_infinito = !config->modo_infinito; break;
+                } break;
+            case KEY_RIGHT: case 'd': case 'D':
                 switch (campo) {
-                    case 0: /* Tedax */
-                        if (config->num_tedax < MAX_TEDAX) config->num_tedax++;
-                        break;
-                    case 1: /* Bancadas */
-                        if (config->num_bancadas < MAX_BANCADAS) config->num_bancadas++;
-                        break;
-                    case 2: /* Tempo */
-                        if (config->tempo_partida < 300) config->tempo_partida += 30;
-                        break;
-                    case 3: /* Dificuldade */
-                        if (config->dificuldade < 3) config->dificuldade++;
-                        break;
-                    case 4: /* Modulos para vencer */
-                        if (config->modulos_para_vencer < 50) config->modulos_para_vencer += 5;
-                        break;
-                    case 5: /* Modo infinito */
-                        config->modo_infinito = !config->modo_infinito;
-                        break;
-                }
-                break;
-
-            case '\n':
-            case KEY_ENTER:
-                if (campo == 6) { /* Botao voltar */
-                    return;
-                }
-                break;
-
-            case 27: /* ESC */
-            case 'q':
-            case 'Q':
-                return;
-
-            default:
-                break;
+                    case 0: if (config->num_tedax < MAX_TEDAX) config->num_tedax++; break;
+                    case 1: if (config->num_bancadas < MAX_BANCADAS) config->num_bancadas++; break;
+                    case 2: if (config->tempo_partida < 300) config->tempo_partida += 30; break;
+                    case 3: if (config->dificuldade < 3) config->dificuldade++; break;
+                    case 4: if (config->modulos_para_vencer < 50) config->modulos_para_vencer += 5; break;
+                    case 5: config->modo_infinito = !config->modo_infinito; break;
+                } break;
+            case '\n': case KEY_ENTER: if (campo == 6) return; break;
+            case 27: case 'q': case 'Q': return;
         }
-
         if (sinal_recebido) return;
     }
 }
@@ -180,6 +99,12 @@ void menu_configuracoes(ConfigJogo* config) {
 bool loop_partida(void) {
     int tecla;
 
+    /* Configura modo semi-bloqueante (timeout de 100ms) */
+    timeout(100); 
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    curs_set(0);
     flushinp();
     nodelay(stdscr, TRUE); /* getch nao-bloqueante */
 
@@ -187,6 +112,7 @@ bool loop_partida(void) {
         /* Verifica estado do jogo */
         EstadoJogo estado = jogo_obter_estado(jogo);
 
+        /* Verifica Fim de Jogo */
         if (estado == JOGO_VITORIA || estado == JOGO_DERROTA) {
             nodelay(stdscr, FALSE);
             usleep(500000);
@@ -197,9 +123,8 @@ bool loop_partida(void) {
             return true;
         }
 
-        /* Atualiza a tela */
+        /* --- DESENHA TELA --- */
         erase();
-
         int linha = 0;
         attron(COLOR_PAIR(COR_TITULO) | A_BOLD);
         mvprintw(linha, (COLS - 50) / 2, "KEEP SOLVING AND NOBODY EXPLODES - Versao de Treino");
@@ -221,8 +146,8 @@ bool loop_partida(void) {
             mvprintw(LINES / 2, (COLS - 20) / 2, "*** JOGO PAUSADO ***");
             attroff(COLOR_PAIR(COR_ALERTA) | A_BOLD | A_BLINK);
         }
-
         refresh();
+        /* -------------------- */
 
         /* Processa entrada do usuario - nao-bloqueante */
         tecla = getch();
@@ -234,11 +159,19 @@ bool loop_partida(void) {
                     nodelay(stdscr, FALSE);
                     jogo_feedback(jogo, "Saindo do jogo...");
                     jogo_parar_partida(jogo);
+                    timeout(-1);
                     return true;
 
                 case 'p':
                 case 'P':
-                    jogo_pausar(jogo);
+                    /* CORRECAO: Verifica contexto do 'p' */
+                    /* Se ja tem algo digitado, 'p' eh texto do comando. */
+                    /* Se estiver vazio, 'p' eh o comando de pausa. */
+                    if (jogo->pos_buffer > 0) {
+                        jogo_adicionar_char_comando(jogo, (char)tecla);
+                    } else {
+                        jogo_pausar(jogo);
+                    }
                     break;
 
                 case 'h':
@@ -252,9 +185,7 @@ bool loop_partida(void) {
                     getch();
                     nodelay(stdscr, TRUE);
                     flushinp();
-                    if (jogo_obter_estado(jogo) == JOGO_PAUSADO) {
-                        jogo_pausar(jogo);
-                    }
+                    if (jogo_obter_estado(jogo) == JOGO_PAUSADO) jogo_pausar(jogo);
                     break;
 
                 case 27: /* ESC */
@@ -291,95 +222,61 @@ bool loop_partida(void) {
         }
     }
 
+    timeout(-1);
     return false;
 }
 
 int main(int argc, char* argv[]) {
-    (void)argc; /* Evita warning */
-    (void)argv; /* Evita warning */
+    (void)argc; (void)argv;
 
-    /* Configura handler de sinais */
     signal(SIGINT, handler_sinal);
     signal(SIGTERM, handler_sinal);
-
-    /* Inicializa gerador aleatorio */
     srand(time(NULL));
 
-    /* Inicializa ncurses */
     if (display_init() != 0) {
-        fprintf(stderr, "Erro ao inicializar ncurses!\n");
+        fprintf(stderr, "Erro ncurses!\n");
         return 1;
     }
 
-    /* Aloca estrutura do jogo */
     jogo = malloc(sizeof(EstadoJogoCompleto));
     if (!jogo) {
         display_finalizar();
-        fprintf(stderr, "Erro ao alocar memoria!\n");
         return 1;
     }
 
-    /* Configuracoes iniciais */
     ConfigJogo config = config_padrao();
-
-    /* Inicializa o jogo */
     if (jogo_init(jogo, &config) != 0) {
         free(jogo);
         display_finalizar();
-        fprintf(stderr, "Erro ao inicializar jogo!\n");
         return 1;
     }
 
-    /* Loop principal do programa */
     bool continuar = true;
     while (continuar && !sinal_recebido) {
         int opcao = menu_principal(&config);
-
         switch (opcao) {
-            case 0: /* Iniciar jogo */
-                /* Atualiza configuracoes */
+            case 0: /* Iniciar */
                 pthread_mutex_lock(&jogo->mutex_estado);
                 memcpy(&jogo->config, &config, sizeof(ConfigJogo));
                 pthread_mutex_unlock(&jogo->mutex_estado);
-
-                /* Inicia a partida */
-                if (jogo_iniciar_partida(jogo) == 0) {
-                    continuar = loop_partida();
-                }
+                jogo->executando = true; 
+                if (jogo_iniciar_partida(jogo) == 0) continuar = loop_partida();
                 break;
-
-            case 1: /* Configuracoes */
-                menu_configuracoes(&config);
+            case 1: menu_configuracoes(&config); break;
+            case 2: 
+                timeout(-1);
+                display_ajuda(); 
+                getch(); 
                 break;
-
-            case 2: /* Ajuda */
-                display_ajuda();
-                flushinp();
-                getch();
-                flushinp();
-                break;
-
-            case 3: /* Sair */
-                continuar = false;
-                break;
+            case 3: continuar = false; break;
         }
     }
 
-    /* Finaliza o jogo */
     jogo->executando = false;
     jogo_finalizar(jogo);
     free(jogo);
-    jogo = NULL;
-
-    /* Finaliza ncurses */
     display_finalizar();
-
-    printf("\n");
-    printf("=================================================\n");
-    printf(" Keep Solving and Nobody Explodes - Versao de Treino\n");
-    printf(" Obrigado por jogar!\n");
-    printf("=================================================\n");
-    printf("\n");
-
+    
+    printf("Obrigado por jogar!\n");
     return 0;
 }
