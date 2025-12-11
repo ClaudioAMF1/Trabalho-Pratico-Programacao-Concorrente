@@ -68,6 +68,7 @@ int jogo_init(EstadoJogoCompleto* estado, ConfigJogo* config) {
 
     memset(estado->mensagem_feedback, 0, sizeof(estado->mensagem_feedback));
     estado->tempo_mensagem = 0;
+    memset(estado->motivo_final, 0, sizeof(estado->motivo_final));
 
     return 0;
 }
@@ -97,6 +98,7 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
     estado->stats.inicio_partida = time(NULL);
     estado->proximo_id_modulo = 1;
     estado->estado = JOGO_RODANDO;
+    memset(estado->motivo_final, 0, sizeof(estado->motivo_final));
     pthread_mutex_unlock(&estado->mutex_estado);
 
     while (!fila_modulos_vazia(&estado->fila_modulos)) {
@@ -199,16 +201,26 @@ bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
     if (!estado->config.modo_infinito &&
         estado->stats.modulos_desarmados >= estado->config.modulos_para_vencer) {
         novo_estado = JOGO_VITORIA;
+        snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                 "Objetivo alcancado (%d modulos desarmados)",
+                 estado->config.modulos_para_vencer);
         fim = true;
     }
     if (estado->stats.tempo_restante <= 0) {
         novo_estado = JOGO_DERROTA;
+        snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                 "Tempo esgotado");
         fim = true;
     }
-    if (estado->fila_modulos.quantidade >= MAX_MODULOS_PENDENTES) {
+
+    int pendentes = fila_modulos_quantidade(&estado->fila_modulos);
+    if (pendentes >= MAX_MODULOS_PENDENTES) {
         novo_estado = JOGO_DERROTA;
+        snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                 "Fila cheia: %d modulos pendentes", pendentes);
         fim = true;
     }
+
     if (fim) estado->estado = novo_estado;
 
     pthread_mutex_unlock(&estado->mutex_estado);
