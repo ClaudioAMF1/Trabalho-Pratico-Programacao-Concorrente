@@ -117,7 +117,6 @@ void* thread_tedax(void* arg) {
     if (!tedax || !jogo) return NULL;
 
     while (tedax->ativo && jogo->executando) {
-        /* FASE 1: Aguardar tarefa */
         pthread_mutex_lock(&tedax->mutex);
         while (!tedax->tarefa_pendente && tedax->ativo && jogo->executando) {
             pthread_cond_wait(&tedax->cond_tarefa, &tedax->mutex);
@@ -139,12 +138,13 @@ void* thread_tedax(void* arg) {
         if (!modulo || bancada_id < 0 || bancada_id >= jogo->config.num_bancadas) {
             pthread_mutex_lock(&tedax->mutex);
             tedax->estado = ESTADO_LIVRE;
-            if (modulo) { free(modulo); tedax->modulo_atual = NULL; }
+            /* SEGURO: Limpa ponteiro antes de liberar */
+            tedax->modulo_atual = NULL;
             pthread_mutex_unlock(&tedax->mutex);
+            if (modulo) free(modulo); 
             continue;
         }
 
-        /* FASE 2: Obter Bancada */
         Bancada* bancada = &jogo->bancadas[bancada_id];
         jogo_feedback(jogo, "Tedax %d aguardando bancada %d...", tedax->id + 1, bancada_id + 1);
 
@@ -154,6 +154,7 @@ void* thread_tedax(void* arg) {
                 conseguiu_bancada = true;
             } else {
                 bancada_aguardar_livre(bancada, 500);
+                usleep(50000); /* Pausa para evitar starvation */
             }
             
             pthread_mutex_lock(&jogo->mutex_estado);
@@ -163,20 +164,16 @@ void* thread_tedax(void* arg) {
         }
 
         if (!conseguiu_bancada) {
-            pthread_mutex_lock(&tedax->mutex);
-            tedax->estado = ESTADO_LIVRE;
-            pthread_mutex_unlock(&tedax->mutex);
-            
             fila_modulos_adicionar(&jogo->fila_modulos, modulo);
             free(modulo);
             
             pthread_mutex_lock(&tedax->mutex);
+            tedax->estado = ESTADO_LIVRE;
             tedax->modulo_atual = NULL;
             pthread_mutex_unlock(&tedax->mutex);
             continue;
         }
 
-        /* FASE 3: Resolver Modulo */
         pthread_mutex_lock(&tedax->mutex);
         tedax->estado = ESTADO_OCUPADO;
         tedax->bancada_atual = bancada;
@@ -195,15 +192,12 @@ void* thread_tedax(void* arg) {
 
         bool sucesso = tedax_resolver_modulo(tedax, modulo, instrucao);
 
-        /* FASE 4: Finalizar (Onde o travamento ocorria) */
         bancada_liberar(bancada, tedax->id);
 
-        /* 1. Libera o Tedax PRIMEIRO (solta mutex do tedax) */
         pthread_mutex_lock(&tedax->mutex);
         tedax->bancada_atual = NULL;
         pthread_mutex_unlock(&tedax->mutex);
 
-        /* 2. Atualiza pontuação (solta mutex do estado) */
         pthread_mutex_lock(&jogo->mutex_estado);
         if (sucesso) {
             tedax->modulos_desarmados++;
@@ -212,17 +206,13 @@ void* thread_tedax(void* arg) {
             tedax->modulos_falhados++;
             jogo->stats.modulos_falhados++;
         }
-        /* IMPORTANTE: Pega a quantidade depois, ou com mutex da fila, mas nao misture locks */
         pthread_mutex_unlock(&jogo->mutex_estado);
 
-        /* Pega a quantidade de forma segura fora do lock principal */
         int qtd_pendentes = fila_modulos_quantidade(&jogo->fila_modulos);
-        
         pthread_mutex_lock(&jogo->mutex_estado);
         jogo->stats.modulos_pendentes = qtd_pendentes;
         pthread_mutex_unlock(&jogo->mutex_estado);
 
-        /* 3. Feedback e retorno à fila (sem segurar outros mutexes) */
         if (sucesso) {
             jogo_feedback(jogo, "Tedax %d desarmou %s com sucesso!", tedax->id + 1, modulo->nome);
         } else {
@@ -231,12 +221,13 @@ void* thread_tedax(void* arg) {
             jogo_feedback(jogo, "Tedax %d FALHOU em %s! Instrucao errada.", tedax->id + 1, modulo->nome);
         }
 
-        free(modulo);
-
+        /* SEGURANÇA: Limpa ponteiro ANTES de liberar memoria */
         pthread_mutex_lock(&tedax->mutex);
         tedax->modulo_atual = NULL;
         tedax->estado = ESTADO_LIVRE;
         pthread_mutex_unlock(&tedax->mutex);
+
+        free(modulo);
     }
     return NULL;
 }
