@@ -282,8 +282,8 @@ bool loop_partida(void) {
             }
         }
 
-        /* Delay para nao sobrecarregar CPU - 50ms */
-        usleep(50000);
+        /* Delay para nao sobrecarregar CPU - 20ms */
+        usleep(20000);
 
         if (sinal_recebido) {
             jogo_parar_partida(jogo);
