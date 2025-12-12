@@ -68,6 +68,7 @@ int jogo_init(EstadoJogoCompleto* estado, ConfigJogo* config) {
 
     memset(estado->mensagem_feedback, 0, sizeof(estado->mensagem_feedback));
     estado->tempo_mensagem = 0;
+    memset(estado->motivo_final, 0, sizeof(estado->motivo_final));
 
     return 0;
 }
@@ -97,6 +98,7 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
     estado->stats.inicio_partida = time(NULL);
     estado->proximo_id_modulo = 1;
     estado->estado = JOGO_RODANDO;
+    memset(estado->motivo_final, 0, sizeof(estado->motivo_final));
     pthread_mutex_unlock(&estado->mutex_estado);
 
     while (!fila_modulos_vazia(&estado->fila_modulos)) {
@@ -135,6 +137,19 @@ int jogo_iniciar_partida(EstadoJogoCompleto* estado) {
 
 void jogo_parar_partida(EstadoJogoCompleto* estado) {
     if (!estado) return;
+
+    /*
+     * Ao chegar em estados de vitoria/derrota, esta funcao eh chamada a
+     * partir da thread principal. Sem encerrar a flag 'executando', as
+     * threads do mural e do timer permanecem presas no loop interno
+     * (aguardando o estado voltar para JOGO_RODANDO). Isso fazia a thread
+     * principal bloquear no pthread_join, aparentando um travamento do
+     * jogo ate que um sinal (ex: CTRL+C) fosse enviado. Forcamos a flag
+     * para false antes de aguardar as threads terminarem.
+     */
+    pthread_mutex_lock(&estado->mutex_estado);
+    estado->executando = false;
+    pthread_mutex_unlock(&estado->mutex_estado);
 
     for (int i = 0; i < estado->config.num_tedax; i++) {
         tedax_parar_thread(&estado->tedax[i]);
@@ -186,16 +201,29 @@ bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
     if (!estado->config.modo_infinito &&
         estado->stats.modulos_desarmados >= estado->config.modulos_para_vencer) {
         novo_estado = JOGO_VITORIA;
+        snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                 "Objetivo alcancado (%d modulos desarmados)",
+                 estado->config.modulos_para_vencer);
         fim = true;
     }
-    if (estado->stats.tempo_restante <= 0) {
+
+    if (!fim && estado->stats.tempo_restante <= 0) {
         novo_estado = JOGO_DERROTA;
+        snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                 "Tempo esgotado");
         fim = true;
     }
-    if (estado->fila_modulos.quantidade >= MAX_MODULOS_PENDENTES) {
-        novo_estado = JOGO_DERROTA;
-        fim = true;
+
+    if (!fim) {
+        int pendentes = fila_modulos_quantidade(&estado->fila_modulos);
+        if (pendentes >= MAX_MODULOS_PENDENTES) {
+            novo_estado = JOGO_DERROTA;
+            snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                     "Fila cheia: %d modulos pendentes", pendentes);
+            fim = true;
+        }
     }
+
     if (fim) estado->estado = novo_estado;
 
     pthread_mutex_unlock(&estado->mutex_estado);
