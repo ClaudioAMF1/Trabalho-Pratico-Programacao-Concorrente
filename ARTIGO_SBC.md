@@ -119,34 +119,6 @@ make run   # ou ./bomb_defuser
 
 ---
 
-## 6. Validacao e Conformidade
-
-- **Threads obrigatorias:** main, mural, timer, display e ate 3 Tedax em paralelo (>=5 threads).
-- **Sincronizacao:** fila de modulos, bancadas, estado global e buffer de comando protegidos por mutex e condicoes, sem busy waiting.
-- **Bonus de assimetria:** bloqueio com condicao quando ha mais Tedax que bancadas, garantindo acesso justo.
-- **Encerramento limpo:** flags sob mutex, sinalizacao de fim e `pthread_join` antes de liberar ncurses.
-- **Documentacao:** README traz guia de instalacao/execucao; este artigo segue o modelo SBC em ate tres paginas, com identificacao do autor (Claudio da Aparecida Meireles Filho, RA 2321070).
-- **Teste de compilacao:** `make` compila o projeto com as mesmas flags do avaliador (Ubuntu 24.04 e `ncurses`).
-- **Entrega:** o enunciado exige submissao em `.zip` contendo codigo e documentacao, renomeado com matricula(s) + `md5sum`; siga o README para gerar o pacote.
-
----
-
-## 7. Validacao e Conformidade com o Enunciado
-
-- **Threads requeridas:** main, mural, timer, display e ate 3 Tedax executam concorrentemente, cobrindo o minimo de cinco
-  threads exigido.
-- **Recursos compartilhados:** fila de modulos, bancadas, estado do jogo e buffer de entrada sao protegidos por mutex e variaveis
-  de condicao, evitando race conditions.
-- **Fila de espera (bonus):** quando ha mais Tedax que bancadas, ha bloqueio e sinalizacao por condicao para eliminar busy
-  waiting, conforme opcional de assimetria.
-- **Encerramento consistente:** flags de controle sao atualizadas com mutex, e as threads sao sincronizadas via `pthread_join`
-  antes de restaurar a tela, evitando deadlocks na finalizacao.
-- **Documentacao completa:** README detalha compilacao, gameplay e configuracoes; este artigo apresenta arquitetura e decisoes
-  tecnicas com nome e RA do autor (Claudio da Aparecida Meireles Filho, RA 2321070).
-- **Testes executados:** `make` valida a construcao de todo o projeto e depende das mesmas flags utilizadas pelo avaliador.
-
----
-
 ## 8. Conclusao
 
 O projeto demonstra aplicacao pratica de programacao concorrente em C: uso de multiplas threads coordenadas, secoes criticas protegidas, sincronizacao por mutex/condicoes e exploracao de configuracoes assimetricas. A modularizacao em arquivos separados facilita manutencao e extensao para novos tipos de modulos ou politicas de agendamento.
