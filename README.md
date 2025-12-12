@@ -21,6 +21,7 @@ O jogo implementa conceitos de programacao concorrente:
 - As bancadas de trabalho sao recursos compartilhados
 - Sincronizacao via mutex e variaveis de condicao
 - Fila de modulos thread-safe com produtor/consumidor
+- Threads de temporizador e mural operando em paralelo com a thread principal
 
 ---
 
@@ -51,6 +52,9 @@ make run
 # Limpar arquivos compilados
 make clean
 ```
+
+> Observacao: se estiver em um ambiente sem internet (como o avaliador automatico), as dependencias de compilacao ja estao
+> presentes. Basta executar `make` e `make run` diretamente.
 
 ---
 
@@ -114,6 +118,7 @@ O Tedax 1 ira para a Bancada 1 e tentara desarmar o modulo de fios cortando os f
 | p | Pausar/continuar jogo |
 | h | Mostrar tela de ajuda |
 | q | Sair do jogo |
+| Ctrl+C | Forca a saida, mostra motivo final |
 
 ### Dicas
 
@@ -137,6 +142,9 @@ No menu de configuracoes voce pode ajustar:
 | Dificuldade | 1-3 | 1 |
 | Modulos para Vencer | quantidade | 10 |
 | Modo Infinito | Sim/Nao | Nao |
+
+Cada alteracao e validada na interface e aplicada imediatamente ao iniciar uma nova partida. O modo infinito ignora a meta de
+modulos para vencer, mantendo o jogo ate ocorrer uma derrota por tempo ou fila cheia.
 
 ---
 
@@ -191,6 +199,16 @@ Trabalho-Pratico-Programacao-Concorrente/
 ## Bonus Implementado
 
 **Assimetria Tedax/Bancadas**: O sistema suporta configuracoes onde o numero de Tedax difere do numero de bancadas. Quando ha mais Tedax que bancadas, os tecnicos aguardam em fila pela liberacao de uma bancada, implementando um sistema de espera com variaveis de condicao.
+
+---
+
+## Checklist de Requisitos do Trabalho
+
+- **Uso de threads POSIX:** main, mural, timer, display e ate 3 threads de Tedax trabalham concorrentemente.
+- **Fila e bancadas protegidas:** todas as estruturas compartilhadas utilizam mutex e variaveis de condicao para evitar race conditions e busy waiting.
+- **Tratamento de encerramento limpo:** flags de controle e `pthread_join` garantem que as threads terminem antes de liberar a interface ncurses.
+- **Documentacao completa:** este README resume execucao e gameplay; o arquivo `ARTIGO_SBC.md` apresenta a documentacao tecnica solicitada com nome e RA do aluno.
+- **Configuracoes obrigatorias:** numero de Tedax, bancadas, tempo, meta de modulos e dificuldade podem ser ajustados no menu de configuracao do jogo, conforme solicitado no enunciado.
 
 ---
 

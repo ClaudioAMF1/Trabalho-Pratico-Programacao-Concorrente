@@ -188,6 +188,9 @@ typedef struct {
     /* Mensagens de feedback */
     char mensagem_feedback[128];
     time_t tempo_mensagem;
+
+    /* Motivo do fim da partida (vitoria/derrota) */
+    char motivo_final[128];
 } EstadoJogoCompleto;
 
 /* ==================== VARIAVEIS GLOBAIS ==================== */
