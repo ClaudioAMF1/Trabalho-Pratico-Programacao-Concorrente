@@ -328,6 +328,12 @@ void display_fim_jogo(EstadoJogoCompleto* estado) {
         attroff(COLOR_PAIR(COR_ERRO) | A_BOLD);
     }
     linha += 4;
+    if (strlen(estado->motivo_final) > 0) {
+        attron(COLOR_PAIR(COR_ALERTA));
+        mvprintw(linha++, (COLS - 40) / 2, "%s", estado->motivo_final);
+        attroff(COLOR_PAIR(COR_ALERTA));
+        linha++;
+    }
     mvprintw(linha++, 20, "=== ESTATISTICAS ===");
     mvprintw(linha++, 20, "Modulos gerados:    %d", estado->stats.modulos_gerados);
     mvprintw(linha++, 20, "Modulos desarmados: %d", estado->stats.modulos_desarmados);
