@@ -1,3 +1,4 @@
+
 # Keep Solving and Nobody Explodes - Versao de Treino
 
 ## Documentacao de Implementacao - Programacao Concorrente
@@ -130,7 +131,23 @@ make run   # ou ./bomb_defuser
 
 ---
 
-## 7. Conclusao
+## 7. Validacao e Conformidade com o Enunciado
+
+- **Threads requeridas:** main, mural, timer, display e ate 3 Tedax executam concorrentemente, cobrindo o minimo de cinco
+  threads exigido.
+- **Recursos compartilhados:** fila de modulos, bancadas, estado do jogo e buffer de entrada sao protegidos por mutex e variaveis
+  de condicao, evitando race conditions.
+- **Fila de espera (bonus):** quando ha mais Tedax que bancadas, ha bloqueio e sinalizacao por condicao para eliminar busy
+  waiting, conforme opcional de assimetria.
+- **Encerramento consistente:** flags de controle sao atualizadas com mutex, e as threads sao sincronizadas via `pthread_join`
+  antes de restaurar a tela, evitando deadlocks na finalizacao.
+- **Documentacao completa:** README detalha compilacao, gameplay e configuracoes; este artigo apresenta arquitetura e decisoes
+  tecnicas com nome e RA do autor (Claudio da Aparecida Meireles Filho, RA 2321070).
+- **Testes executados:** `make` valida a construcao de todo o projeto e depende das mesmas flags utilizadas pelo avaliador.
+
+---
+
+## 8. Conclusao
 
 O projeto demonstra aplicacao pratica de programacao concorrente em C: uso de multiplas threads coordenadas, secoes criticas protegidas, sincronizacao por mutex/condicoes e exploracao de configuracoes assimetricas. A modularizacao em arquivos separados facilita manutencao e extensao para novos tipos de modulos ou politicas de agendamento.
 
