@@ -58,14 +58,6 @@ make clean
 
 ---
 
-## Entrega (conforme enunciado)
-
-- Gere um arquivo `.zip` contendo este repositório (sem a pasta `.git/`) e a documentação `ARTIGO_SBC.md`.
-- Calcule o `md5sum` do `.zip` e renomeie o arquivo incluindo as matrículas e o hash, por exemplo: `2321070-<hash>.zip`.
-- A submissão deve ser feita no Ambiente Virtual da disciplina dentro do prazo informado pelo professor.
-
----
-
 ## Como Jogar
 
 ### Objetivo
@@ -207,16 +199,6 @@ Trabalho-Pratico-Programacao-Concorrente/
 ## Bonus Implementado
 
 **Assimetria Tedax/Bancadas**: O sistema suporta configuracoes onde o numero de Tedax difere do numero de bancadas. Quando ha mais Tedax que bancadas, os tecnicos aguardam em fila pela liberacao de uma bancada, implementando um sistema de espera com variaveis de condicao.
-
----
-
-## Checklist de Requisitos do Trabalho
-
-- **Uso de threads POSIX:** main, mural, timer, display e ate 3 threads de Tedax trabalham concorrentemente.
-- **Fila e bancadas protegidas:** todas as estruturas compartilhadas utilizam mutex e variaveis de condicao para evitar race conditions e busy waiting.
-- **Tratamento de encerramento limpo:** flags de controle e `pthread_join` garantem que as threads terminem antes de liberar a interface ncurses.
-- **Documentacao completa:** este README resume execucao e gameplay; o arquivo `ARTIGO_SBC.md` apresenta a documentacao tecnica solicitada com nome e RA do aluno.
-- **Configuracoes obrigatorias:** numero de Tedax, bancadas, tempo, meta de modulos e dificuldade podem ser ajustados no menu de configuracao do jogo, conforme solicitado no enunciado.
 
 ---
 
