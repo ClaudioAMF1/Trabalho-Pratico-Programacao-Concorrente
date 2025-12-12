@@ -58,6 +58,14 @@ make clean
 
 ---
 
+## Entrega (conforme enunciado)
+
+- Gere um arquivo `.zip` contendo este repositório (sem a pasta `.git/`) e a documentação `ARTIGO_SBC.md`.
+- Calcule o `md5sum` do `.zip` e renomeie o arquivo incluindo as matrículas e o hash, por exemplo: `2321070-<hash>.zip`.
+- A submissão deve ser feita no Ambiente Virtual da disciplina dentro do prazo informado pelo professor.
+
+---
+
 ## Como Jogar
 
 ### Objetivo
