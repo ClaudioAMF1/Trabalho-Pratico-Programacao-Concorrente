@@ -206,19 +206,22 @@ bool jogo_verificar_fim(EstadoJogoCompleto* estado) {
                  estado->config.modulos_para_vencer);
         fim = true;
     }
-    if (estado->stats.tempo_restante <= 0) {
+
+    if (!fim && estado->stats.tempo_restante <= 0) {
         novo_estado = JOGO_DERROTA;
         snprintf(estado->motivo_final, sizeof(estado->motivo_final),
                  "Tempo esgotado");
         fim = true;
     }
 
-    int pendentes = fila_modulos_quantidade(&estado->fila_modulos);
-    if (pendentes >= MAX_MODULOS_PENDENTES) {
-        novo_estado = JOGO_DERROTA;
-        snprintf(estado->motivo_final, sizeof(estado->motivo_final),
-                 "Fila cheia: %d modulos pendentes", pendentes);
-        fim = true;
+    if (!fim) {
+        int pendentes = fila_modulos_quantidade(&estado->fila_modulos);
+        if (pendentes >= MAX_MODULOS_PENDENTES) {
+            novo_estado = JOGO_DERROTA;
+            snprintf(estado->motivo_final, sizeof(estado->motivo_final),
+                     "Fila cheia: %d modulos pendentes", pendentes);
+            fim = true;
+        }
     }
 
     if (fim) estado->estado = novo_estado;
